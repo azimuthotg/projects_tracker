@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}โปรไฟล์ของฉัน{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">โปรไฟล์ของฉัน</h1>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <!-- Header -->
+        <div class="bg-blue-900 px-6 py-8 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-full mx-auto flex items-center justify-center mb-3">
+                <span class="text-3xl font-bold text-white">{{ user.first_name|first|default:"?" }}</span>
+            </div>
+            <h2 class="text-xl font-semibold text-white">{{ user.get_full_name|default:user.username }}</h2>
+            {% if profile.position_title %}
+            <p class="text-blue-200 mt-1">{{ profile.position_title }}</p>
+            {% endif %}
+            <div class="mt-2 flex items-center justify-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
+                    {{ profile.get_role_display }}
+                </span>
+                {% if profile.source == 'npu_api' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-400/30 text-white">
+                    NPU AD
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="divide-y divide-gray-100">
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">ชื่อผู้ใช้</span>
+                <span class="text-sm font-medium text-gray-800">{{ user.username }}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">ชื่อ-นามสกุล</span>
+                <span class="text-sm font-medium text-gray-800">{{ user.get_full_name|default:"-" }}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">หน่วยงาน</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.organization|default:"-" }}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">แผนก</span>
+                <span class="text-sm font-medium text-gray-800">{% if profile.department %}{{ profile.department.name }}{% else %}<span class="text-gray-400">ยังไม่กำหนด</span>{% endif %}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">ตำแหน่ง</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.position_title|default:"-" }}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">สถานะการปฏิบัติงาน</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.employment_status|default:"-" }}</span>
+            </div>
+
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">บทบาทในระบบ</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.get_role_display }}</span>
+            </div>
+
+            {% if profile.npu_citizen_id %}
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">เลขบัตรประชาชน</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.npu_citizen_id }}</span>
+            </div>
+            {% endif %}
+
+            {% if profile.npu_staff_id %}
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">รหัสบุคลากร</span>
+                <span class="text-sm font-medium text-gray-800">{{ profile.npu_staff_id }}</span>
+            </div>
+            {% endif %}
+
+            {% if profile.last_npu_sync %}
+            <div class="px-6 py-4 flex justify-between">
+                <span class="text-sm text-gray-500">ซิงค์ข้อมูลล่าสุด</span>
+                <span class="text-sm text-gray-600">{{ profile.last_npu_sync|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

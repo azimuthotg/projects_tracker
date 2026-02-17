@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}แก้ไขแผนก{% else %}เพิ่มแผนก{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'accounts:department_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">&larr; กลับไปรายการแผนก</a>
+    <h1 class="text-2xl font-bold text-gray-800 mt-2">{% if is_edit %}แก้ไขแผนก: {{ department.name }}{% else %}เพิ่มแผนกใหม่{% endif %}</h1>
+</div>
+
+<div class="max-w-lg">
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            {% include "components/_form_field.html" with field=field %}
+            {% endfor %}
+            <div class="flex items-center space-x-3 mt-6">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    {% if is_edit %}บันทึกการแก้ไข{% else %}สร้างแผนก{% endif %}
+                </button>
+                <a href="{% url 'accounts:department_list' %}" class="px-6 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors">ยกเลิก</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+from django import forms
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+
+from .models import Project, Activity
+
+User = get_user_model()
+
+TAILWIND_INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500'
+TAILWIND_SELECT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500'
+TAILWIND_TEXTAREA = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500'
+TAILWIND_CHECKBOX_GROUP = 'space-y-1'
+
+
+def _apply_tailwind(form):
+    for name, field in form.fields.items():
+        widget = field.widget
+        if isinstance(widget, forms.CheckboxSelectMultiple):
+            widget.attrs.setdefault('class', TAILWIND_CHECKBOX_GROUP)
+        elif isinstance(widget, forms.Textarea):
+            widget.attrs.setdefault('class', TAILWIND_TEXTAREA)
+        elif isinstance(widget, (forms.Select, forms.SelectMultiple)):
+            widget.attrs.setdefault('class', TAILWIND_SELECT)
+        else:
+            widget.attrs.setdefault('class', TAILWIND_INPUT)
+
+
+def _get_user_label(user):
+    """Display user as 'ชื่อ-นามสกุล (role)' or fallback to username."""
+    full_name = user.get_full_name()
+    role_display = ''
+    if hasattr(user, 'profile'):
+        role_display = user.profile.get_role_display()
+    name = full_name or user.username
+    if role_display:
+        return f'{name} ({role_display})'
+    return name
+
+
+def _get_user_queryset(user):
+    """Filter user choices based on requesting user's role."""
+    if not hasattr(user, 'profile'):
+        return User.objects.none()
+    role = user.profile.role
+    if role == 'admin':
+        return User.objects.filter(is_active=True).select_related('profile')
+    else:
+        # planner/head: users in same department
+        return User.objects.filter(
+            is_active=True,
+            profile__department=user.profile.department,
+        ).select_related('profile')
+
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = [
+            'fiscal_year', 'project_code', 'name',
+            'description', 'total_budget', 'start_date', 'end_date',
+            'status', 'responsible_persons', 'notify_persons',
+        ]
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'responsible_persons': forms.CheckboxSelectMultiple(),
+            'notify_persons': forms.CheckboxSelectMultiple(),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request_user = user
+        if user:
+            qs = _get_user_queryset(user)
+            self.fields['responsible_persons'].queryset = qs
+            self.fields['notify_persons'].queryset = qs
+            self.fields['responsible_persons'].label_from_instance = _get_user_label
+            self.fields['notify_persons'].label_from_instance = _get_user_label
+        _apply_tailwind(self)
+
+    def clean_responsible_persons(self):
+        persons = self.cleaned_data.get('responsible_persons')
+        if not persons:
+            raise ValidationError('ต้องเลือกผู้รับผิดชอบอย่างน้อย 1 คน')
+        return persons
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise ValidationError('วันที่เริ่มต้นต้องก่อนวันที่สิ้นสุด')
+        return cleaned_data
+
+
+class ActivityForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = [
+            'name', 'description', 'allocated_budget',
+            'start_date', 'end_date', 'status',
+            'responsible_persons', 'notify_persons',
+        ]
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'responsible_persons': forms.CheckboxSelectMultiple(),
+            'notify_persons': forms.CheckboxSelectMultiple(),
+        }
+
+    def __init__(self, *args, project=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.project = project
+        if user:
+            qs = _get_user_queryset(user)
+            self.fields['responsible_persons'].queryset = qs
+            self.fields['notify_persons'].queryset = qs
+            self.fields['responsible_persons'].label_from_instance = _get_user_label
+            self.fields['notify_persons'].label_from_instance = _get_user_label
+        _apply_tailwind(self)
+
+    def clean_responsible_persons(self):
+        persons = self.cleaned_data.get('responsible_persons')
+        if not persons:
+            raise ValidationError('ต้องเลือกผู้รับผิดชอบอย่างน้อย 1 คน')
+        return persons
+
+    def clean_allocated_budget(self):
+        amount = self.cleaned_data['allocated_budget']
+        if amount <= 0:
+            raise ValidationError('งบประมาณต้องมากกว่า 0')
+
+        if self.project:
+            other_allocated = self.project.total_allocated
+            if self.instance.pk:
+                other_allocated -= self.instance.allocated_budget
+            if other_allocated + amount > self.project.total_budget:
+                available = self.project.total_budget - other_allocated
+                raise ValidationError(
+                    f'งบประมาณเกินกว่าที่โครงการกำหนด '
+                    f'(เหลือจัดสรรได้ {available:,.2f} บาท)'
+                )
+        return amount
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise ValidationError('วันที่เริ่มต้นต้องก่อนวันที่สิ้นสุด')
+        return cleaned_data

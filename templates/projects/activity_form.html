@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-sm text-gray-500">
+    <a href="{% url 'projects:project_list' %}" class="hover:underline">โครงการ</a>
+    <span class="mx-1">/</span>
+    <a href="{% url 'projects:project_detail' pk=project.pk %}" class="hover:underline">{{ project.project_code }}</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-800">{{ title }}</span>
+</nav>
+
+<div class="max-w-2xl">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ title }}</h2>
+    <p class="text-gray-500 mb-6">โครงการ: {{ project.name }} (งบเหลือจัดสรร: {{ project.total_budget|floatformat:2 }} - {{ project.total_allocated|floatformat:2 }} = {% widthratio project.total_budget 1 1 as tb %}{{ project.remaining_budget|floatformat:2 }} บาท)</p>
+
+    {% if form.non_field_errors %}
+    <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+        {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        {% csrf_token %}
+        {% for field in form %}
+        {% include "components/_form_field.html" %}
+        {% endfor %}
+
+        <div class="flex gap-3 mt-6">
+            <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
+                {% if activity %}แก้ไข{% else %}เพิ่ม{% endif %}กิจกรรม
+            </button>
+            <a href="{% url 'projects:project_detail' pk=project.pk %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

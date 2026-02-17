@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}โครงการ{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">โครงการทั้งหมด</h2>
+        <p class="text-gray-500 mt-1">รายการโครงการที่คุณมีสิทธิ์เข้าถึง</p>
+    </div>
+    {% if user.profile.role in "planner,head,admin" %}
+    <a href="{% url 'projects:project_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        สร้างโครงการใหม่
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <form method="get" class="flex flex-col sm:flex-row gap-3">
+        <select name="fiscal_year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- ปีงบประมาณ --</option>
+            {% for fy in fiscal_years %}
+            <option value="{{ fy.pk }}" {% if current_fiscal_year == fy.pk|stringformat:"d" %}selected{% endif %}>{{ fy }}</option>
+            {% endfor %}
+        </select>
+        <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- สถานะ --</option>
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="search" value="{{ current_search }}" placeholder="ค้นหาชื่อหรือรหัสโครงการ..." class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 flex-1">
+        <button type="submit" class="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">ค้นหา</button>
+        <a href="{% url 'projects:project_list' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm text-center">ล้าง</a>
+    </form>
+</div>
+
+<!-- Projects Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อโครงการ</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">งบประมาณ</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ใช้ไป</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สัดส่วน</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for project in projects %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm">
+                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-medium text-blue-900 hover:underline">{{ project.project_code }}</a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-800">
+                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="hover:underline">{{ project.name }}</a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ project.total_budget|floatformat:2 }}</td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ project.total_spent|floatformat:2 }}</td>
+                    <td class="px-6 py-4 w-32">
+                        {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if project.status == 'draft' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{{ project.get_status_display }}</span>
+                        {% elif project.status == 'active' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ project.get_status_display }}</span>
+                        {% elif project.status == 'completed' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">{{ project.get_status_display }}</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">{{ project.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">ไม่พบโครงการ</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

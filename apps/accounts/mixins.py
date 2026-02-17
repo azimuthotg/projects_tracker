@@ -1,0 +1,16 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+
+
+class RoleRequiredMixin(LoginRequiredMixin):
+    """Mixin that checks if user has one of the allowed roles."""
+    allowed_roles = []
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not hasattr(request.user, 'profile'):
+            raise PermissionDenied
+        if request.user.profile.role not in self.allowed_roles:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)

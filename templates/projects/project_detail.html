@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-4 text-sm text-gray-500">
+    <a href="{% url 'projects:project_list' %}" class="hover:underline">โครงการ</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-800">{{ project.project_code }}</span>
+</nav>
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">{{ project.name }}</h2>
+        <p class="text-gray-500 mt-1">{{ project.project_code }} | {{ project.fiscal_year }} | {{ project.department }}</p>
+    </div>
+    <div class="flex gap-2">
+        {% if user.profile.role in "planner,head,admin" %}
+        <a href="{% url 'projects:project_edit' pk=project.pk %}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm">แก้ไข</a>
+        {% endif %}
+        {% if project.status == 'draft' and user.profile.role in "planner,head,admin" %}
+        <form method="post" action="{% url 'projects:project_status_change' pk=project.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="active">
+            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">เปิดดำเนินการ</button>
+        </form>
+        {% elif project.status == 'active' and user.profile.role in "planner,head,admin" %}
+        <form method="post" action="{% url 'projects:project_status_change' pk=project.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">เสร็จสิ้น</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Budget Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+        <p class="text-sm text-gray-500">งบประมาณรวม</p>
+        <p class="text-xl font-bold text-blue-900">{{ project.total_budget|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+        <p class="text-sm text-gray-500">จัดสรรแล้ว</p>
+        <p class="text-xl font-bold text-gray-800">{{ project.total_allocated|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+        <p class="text-sm text-gray-500">ใช้ไปแล้ว</p>
+        <p class="text-xl font-bold text-orange-600">{{ project.total_spent|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+        <p class="text-sm text-gray-500">คงเหลือ</p>
+        <p class="text-xl font-bold {% if project.remaining_budget > 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ project.remaining_budget|floatformat:2 }}</p>
+    </div>
+</div>
+
+<!-- Overall Budget Progress -->
+<div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
+    <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium text-gray-700">สัดส่วนการใช้งบประมาณ</span>
+    </div>
+    {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+</div>
+
+{% if project.description %}
+<div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
+    <h3 class="text-sm font-medium text-gray-500 mb-2">รายละเอียด</h3>
+    <p class="text-gray-800">{{ project.description }}</p>
+</div>
+{% endif %}
+
+<!-- Responsible & Notify Persons -->
+<div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+            <p class="text-gray-500 mb-1">ผู้รับผิดชอบหลัก</p>
+            <div class="flex flex-wrap gap-1">
+                {% for person in project.responsible_persons.all %}
+                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{{ person.get_full_name|default:person.username }}</span>
+                {% empty %}
+                <span class="text-gray-400 text-xs">-</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div>
+            <p class="text-gray-500 mb-1">ตั้งแจ้งเตือน</p>
+            <div class="flex flex-wrap gap-1">
+                {% for person in project.notify_persons.all %}
+                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{{ person.get_full_name|default:person.username }}</span>
+                {% empty %}
+                <span class="text-gray-400 text-xs">-</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activities -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-800">กิจกรรม ({{ activities.count }})</h3>
+        {% if user.profile.role in "planner,head,admin" %}
+        <a href="{% url 'projects:activity_create' project_pk=project.pk %}" class="inline-flex items-center px-3 py-1.5 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            เพิ่มกิจกรรม
+        </a>
+        {% endif %}
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อกิจกรรม</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">งบจัดสรร</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ใช้ไป</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สัดส่วน</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for activity in activities %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ activity.activity_number }}</td>
+                    <td class="px-6 py-4 text-sm">
+                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="font-medium text-blue-900 hover:underline">{{ activity.name }}</a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ activity.allocated_budget|floatformat:2 }}</td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ activity.total_spent|floatformat:2 }}</td>
+                    <td class="px-6 py-4 w-32">
+                        {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if activity.status == 'pending' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{{ activity.get_status_display }}</span>
+                        {% elif activity.status == 'in_progress' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">{{ activity.get_status_display }}</span>
+                        {% elif activity.status == 'completed' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ activity.get_status_display }}</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">{{ activity.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">ยังไม่มีกิจกรรม</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Expenses -->
+{% if recent_expenses %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">รายการเบิกจ่ายล่าสุด</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">กิจกรรม</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">โดย</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for expense in recent_expenses %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.activity.name }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-800">{{ expense.description }}</td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ expense.amount|floatformat:2 }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if expense.status == 'pending' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ expense.get_status_display }}</span>
+                        {% elif expense.status == 'approved' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ expense.get_status_display }}</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">{{ expense.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

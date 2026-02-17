@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}ภาพรวมระบบ{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">ภาพรวมระบบ</h1>
+    <p class="text-gray-500 text-sm mt-1">จัดการผู้ใช้ แผนก และปีงบประมาณ</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">ผู้ใช้ทั้งหมด</p>
+                <p class="text-2xl font-bold text-gray-800">{{ total_users }}</p>
+                <p class="text-xs text-gray-400 mt-1">ใช้งาน {{ active_users }} คน</p>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">แผนก</p>
+                <p class="text-2xl font-bold text-gray-800">{{ total_departments }}</p>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">โครงการทั้งหมด</p>
+                <p class="text-2xl font-bold text-gray-800">{{ total_projects }}</p>
+            </div>
+            <div class="p-3 bg-purple-100 rounded-full">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-yellow-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">รอนุมัติ</p>
+                <p class="text-2xl font-bold text-gray-800">{{ pending_expenses }}</p>
+                <p class="text-xs text-gray-400 mt-1">{% if active_fiscal %}ปีงบ {{ active_fiscal.year }}{% else %}ไม่มีปีงบที่ใช้งาน{% endif %}</p>
+            </div>
+            <div class="p-3 bg-yellow-100 rounded-full">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Department Overview -->
+<div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">ข้อมูลแผนก</h2>
+    {% if departments %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-4 text-gray-600 font-medium">รหัส</th>
+                    <th class="text-left py-3 px-4 text-gray-600 font-medium">ชื่อแผนก</th>
+                    <th class="text-center py-3 px-4 text-gray-600 font-medium">สมาชิก</th>
+                    <th class="text-center py-3 px-4 text-gray-600 font-medium">โครงการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-mono text-gray-700">{{ dept.code }}</td>
+                    <td class="py-3 px-4 text-gray-800">{{ dept.name }}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ dept.member_count }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">{{ dept.project_count }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-center py-4">ยังไม่มีข้อมูลแผนก</p>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white rounded-xl shadow-sm p-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">การดำเนินการด่วน</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="{% url 'accounts:user_create' %}" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+            <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            <div>
+                <p class="font-medium text-blue-900">เพิ่มผู้ใช้ใหม่</p>
+                <p class="text-xs text-blue-600">สร้างบัญชีผู้ใช้พร้อมกำหนดสิทธิ์</p>
+            </div>
+        </a>
+        <a href="{% url 'accounts:department_create' %}" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+            <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            <div>
+                <p class="font-medium text-green-900">เพิ่มแผนก</p>
+                <p class="text-xs text-green-600">สร้างแผนกใหม่ในระบบ</p>
+            </div>
+        </a>
+        <a href="{% url 'accounts:fiscalyear_create' %}" class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+            <svg class="w-8 h-8 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <div>
+                <p class="font-medium text-purple-900">เพิ่มปีงบประมาณ</p>
+                <p class="text-xs text-purple-600">สร้างปีงบประมาณใหม่</p>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

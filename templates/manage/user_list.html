@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการผู้ใช้งาน{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800">จัดการผู้ใช้งาน</h1>
+        <p class="text-gray-500 text-sm mt-1">รายการผู้ใช้ทั้งหมดในระบบ</p>
+    </div>
+    <a href="{% url 'accounts:user_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        เพิ่มผู้ใช้
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs text-gray-500 mb-1">ค้นหา</label>
+            <input type="text" name="search" value="{{ current_search }}" placeholder="ชื่อ, นามสกุล, username..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="min-w-[160px]">
+            <label class="block text-xs text-gray-500 mb-1">แผนก</label>
+            <select name="department" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">ทั้งหมด</option>
+                {% for dept in departments %}
+                <option value="{{ dept.pk }}" {% if current_dept == dept.pk|stringformat:"d" %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="min-w-[140px]">
+            <label class="block text-xs text-gray-500 mb-1">บทบาท</label>
+            <select name="role" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">ทั้งหมด</option>
+                {% for val, label in role_choices %}
+                <option value="{{ val }}" {% if current_role == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors">กรอง</button>
+        <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 text-gray-500 text-sm hover:text-gray-700">ล้าง</a>
+    </form>
+</div>
+
+<!-- User Table -->
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="text-left py-3 px-4 text-gray-600 font-medium">ผู้ใช้</th>
+                    <th class="text-left py-3 px-4 text-gray-600 font-medium">หน่วยงาน / แผนก</th>
+                    <th class="text-left py-3 px-4 text-gray-600 font-medium">ตำแหน่ง</th>
+                    <th class="text-center py-3 px-4 text-gray-600 font-medium">บทบาท</th>
+                    <th class="text-center py-3 px-4 text-gray-600 font-medium">สถานะ</th>
+                    <th class="text-center py-3 px-4 text-gray-600 font-medium">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4">
+                        <div>
+                            <p class="font-medium text-gray-800">{{ u.get_full_name|default:u.username }}</p>
+                            <p class="text-xs text-gray-500">{{ u.username }}{% if u.email %} &middot; {{ u.email }}{% endif %}</p>
+                            {% if u.profile and u.profile.source == 'npu_api' %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-indigo-50 text-indigo-600 mt-0.5">NPU AD</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-600">
+                        {% if u.profile and u.profile.organization %}
+                            <p>{{ u.profile.organization }}</p>
+                        {% endif %}
+                        {% if u.profile and u.profile.department %}
+                            <p class="text-xs text-blue-600">{{ u.profile.department.name }}</p>
+                        {% elif not u.profile or not u.profile.organization %}
+                            <span class="text-gray-400">-</span>
+                        {% else %}
+                            <p class="text-xs text-gray-400">ยังไม่กำหนดแผนก</p>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-gray-600">
+                        {% if u.profile and u.profile.position_title %}
+                            <p>{{ u.profile.position_title }}</p>
+                            {% if u.profile.employment_status %}<p class="text-xs text-gray-400">{{ u.profile.employment_status }}</p>{% endif %}
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        {% if u.profile %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if u.profile.role == 'admin' %}bg-red-100 text-red-800
+                            {% elif u.profile.role == 'head' %}bg-purple-100 text-purple-800
+                            {% elif u.profile.role == 'planner' %}bg-blue-100 text-blue-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ u.profile.get_role_display }}
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        {% if u.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">ใช้งาน</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">ปิดใช้งาน</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <a href="{% url 'accounts:user_edit' u.pk %}" class="text-blue-600 hover:text-blue-800" title="แก้ไข">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </a>
+                            <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" class="inline" onsubmit="return confirm('{% if u.is_active %}ปิดใช้งาน{% else %}เปิดใช้งาน{% endif %}ผู้ใช้ {{ u.username }} ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="{% if u.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}" title="{% if u.is_active %}ปิดใช้งาน{% else %}เปิดใช้งาน{% endif %}">
+                                    {% if u.is_active %}
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                    {% else %}
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-gray-500">ไม่พบผู้ใช้งาน</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

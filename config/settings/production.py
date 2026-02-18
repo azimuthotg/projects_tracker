@@ -23,14 +23,20 @@ STORAGES = {
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
 }
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = 'DENY'
-SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+
+# ตั้งค่า HTTPS — ปิดได้สำหรับ internal HTTP (default: True)
+_ssl = env.bool('HTTPS_ENABLED', default=True)
+SECURE_SSL_REDIRECT = _ssl
+SESSION_COOKIE_SECURE = _ssl
+CSRF_COOKIE_SECURE = _ssl
+SECURE_HSTS_SECONDS = 31536000 if _ssl else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _ssl
+SECURE_HSTS_PRELOAD = _ssl

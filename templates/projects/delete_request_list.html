@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}คำขอลบโครงการ{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">คำขอลบโครงการ</h2>
+        <p class="text-gray-500 mt-1">รายการรอพิจารณาและประวัติการดำเนินการ</p>
+    </div>
+</div>
+
+<!-- Pending -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+        <h3 class="text-lg font-semibold text-gray-800">รอพิจารณา</h3>
+        {% if pending %}
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">{{ pending.count }}</span>
+        {% endif %}
+    </div>
+    <div class="divide-y divide-gray-100">
+        {% for req in pending %}
+        <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div class="flex-1">
+                <p class="font-medium text-gray-800">{{ req.project.name }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ req.project.project_code }} · {{ req.project.fiscal_year }}</p>
+                <p class="text-sm text-gray-600 mt-2">
+                    <span class="text-gray-400">เหตุผล:</span> {{ req.reason }}
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    ขอโดย <b class="text-gray-600">{{ req.requested_by.get_full_name|default:req.requested_by.username }}</b>
+                    เมื่อ {{ req.requested_at|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <a href="{% url 'projects:delete_request_review' pk=req.pk %}"
+                   class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">พิจารณา</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-6 py-8 text-center text-gray-400 text-sm">ไม่มีคำขอที่รอพิจารณา</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- History -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">ประวัติการดำเนินการ (50 รายการล่าสุด)</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">โครงการ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เหตุผล</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้ขอ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้พิจารณา</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ผล</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for req in history %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 text-sm">
+                        <p class="font-medium text-gray-800">{{ req.project.name }}</p>
+                        <p class="text-xs text-gray-400">{{ req.project.project_code }}</p>
+                    </td>
+                    <td class="px-6 py-3 text-sm text-gray-600 max-w-xs">{{ req.reason|truncatechars:60 }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-700">{{ req.requested_by.get_full_name|default:req.requested_by.username }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-700">{{ req.reviewed_by.get_full_name|default:req.reviewed_by.username|default:"-" }}</td>
+                    <td class="px-6 py-3 text-center">
+                        {% if req.status == 'approved' %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">อนุมัติลบ</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">ปฏิเสธ</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-xs text-gray-400 whitespace-nowrap">{{ req.reviewed_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400 text-sm">ยังไม่มีประวัติ</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

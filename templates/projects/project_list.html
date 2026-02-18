@@ -43,31 +43,54 @@
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อโครงการ</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">งบประมาณ</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ใช้ไป</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สัดส่วน</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส / ลำดับ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อโครงการ / กิจกรรม</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้รับผิดชอบ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">งบประมาณ</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ใช้ไป / สัดส่วน</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody>
                 {% for project in projects %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 text-sm">
-                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-medium text-blue-900 hover:underline">{{ project.project_code }}</a>
+                <!-- Project row -->
+                <tr class="bg-white border-t border-gray-200 hover:bg-blue-50/30">
+                    <td class="px-4 py-3 text-sm">
+                        <div class="flex items-center gap-1.5">
+                            {% if project.activities.exists %}
+                            <button type="button"
+                                    onclick="toggleActivities({{ project.pk }}, this)"
+                                    class="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                                    title="ยืด/หดกิจกรรม">
+                                <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            {% else %}
+                            <span class="w-5"></span>
+                            {% endif %}
+                            <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-blue-900 hover:underline">{{ project.project_code }}</a>
+                        </div>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-800">
-                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="hover:underline">{{ project.name }}</a>
+                    <td class="px-4 py-3 text-sm">
+                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline">{{ project.name }}</a>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ project.fiscal_year }} · {{ project.department }}</p>
                     </td>
-                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ project.total_budget|floatformat:2 }}</td>
-                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ project.total_spent|floatformat:2 }}</td>
-                    <td class="px-6 py-4 w-32">
-                        {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800 whitespace-nowrap">{{ project.total_budget|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right">
+                        <div class="text-gray-800 whitespace-nowrap">{{ project.total_spent|floatformat:2 }}</div>
+                        <div class="w-28 mt-1 ml-auto">
+                            {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         {% if project.status == 'draft' %}
-                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{{ project.get_status_display }}</span>
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">{{ project.get_status_display }}</span>
+                        {% elif project.status == 'not_started' %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ project.get_status_display }}</span>
                         {% elif project.status == 'active' %}
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{{ project.get_status_display }}</span>
                         {% elif project.status == 'completed' %}
@@ -77,6 +100,41 @@
                         {% endif %}
                     </td>
                 </tr>
+                <!-- Activity sub-rows -->
+                {% for activity in project.activities.all %}
+                <tr data-project="{{ project.pk }}" class="bg-gray-50/70 hover:bg-gray-100/60 border-t border-gray-100 hidden">
+                    <td class="pl-8 pr-4 py-2 text-xs text-gray-400">
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            {{ activity.activity_number }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-xs">
+                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline">{{ activity.name }}</a>
+                    </td>
+                    <td class="px-4 py-2 text-xs text-gray-600">
+                        {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
+                    </td>
+                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap">{{ activity.allocated_budget|floatformat:2 }}</td>
+                    <td class="px-4 py-2 text-xs text-right">
+                        <div class="text-gray-600 whitespace-nowrap">{{ activity.total_spent|floatformat:2 }}</div>
+                        <div class="w-24 mt-0.5 ml-auto">
+                            {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        {% if activity.status == 'pending' %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{{ activity.get_status_display }}</span>
+                        {% elif activity.status == 'in_progress' %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">{{ activity.get_status_display }}</span>
+                        {% elif activity.status == 'completed' %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">{{ activity.get_status_display }}</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">{{ activity.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
                 {% empty %}
                 <tr>
                     <td colspan="6" class="px-6 py-8 text-center text-gray-500">ไม่พบโครงการ</td>
@@ -86,4 +144,17 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleActivities(projectId, btn) {
+    const rows = document.querySelectorAll(`tr[data-project="${projectId}"]`);
+    const icon = btn.querySelector('svg');
+    const isHidden = rows[0]?.classList.contains('hidden');
+
+    rows.forEach(row => row.classList.toggle('hidden', !isHidden));
+    icon.classList.toggle('rotate-90', isHidden);
+}
+</script>
 {% endblock %}

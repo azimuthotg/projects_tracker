@@ -12,6 +12,14 @@ TAILWIND_TEXTAREA = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm 
 TAILWIND_CHECKBOX_GROUP = 'space-y-1'
 
 
+TAILWIND_FILE = (
+    'w-full text-sm text-gray-600 '
+    'file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 '
+    'file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 '
+    'hover:file:bg-blue-100 cursor-pointer'
+)
+
+
 def _apply_tailwind(form):
     for name, field in form.fields.items():
         widget = field.widget
@@ -21,6 +29,9 @@ def _apply_tailwind(form):
             widget.attrs.setdefault('class', TAILWIND_TEXTAREA)
         elif isinstance(widget, (forms.Select, forms.SelectMultiple)):
             widget.attrs.setdefault('class', TAILWIND_SELECT)
+        elif isinstance(widget, forms.ClearableFileInput):
+            widget.attrs.setdefault('class', TAILWIND_FILE)
+            widget.attrs.setdefault('accept', 'application/pdf')
         else:
             widget.attrs.setdefault('class', TAILWIND_INPUT)
 
@@ -58,7 +69,7 @@ class ProjectForm(forms.ModelForm):
         fields = [
             'fiscal_year', 'project_code', 'name',
             'description', 'total_budget', 'start_date', 'end_date',
-            'status', 'responsible_persons', 'notify_persons',
+            'status', 'document', 'responsible_persons', 'notify_persons',
         ]
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
@@ -78,6 +89,20 @@ class ProjectForm(forms.ModelForm):
             self.fields['responsible_persons'].label_from_instance = _get_user_label
             self.fields['notify_persons'].label_from_instance = _get_user_label
         _apply_tailwind(self)
+
+    def clean_document(self):
+        doc = self.cleaned_data.get('document')
+        if doc and hasattr(doc, 'content_type'):
+            if doc.content_type != 'application/pdf':
+                raise ValidationError('อนุญาตเฉพาะไฟล์ PDF เท่านั้น')
+            if doc.size > 10 * 1024 * 1024:
+                raise ValidationError('ขนาดไฟล์ต้องไม่เกิน 10 MB')
+            # ตรวจ magic bytes ป้องกันการปลอม content-type
+            doc.seek(0)
+            if doc.read(4) != b'%PDF':
+                raise ValidationError('ไฟล์ที่อัปโหลดไม่ใช่ PDF ที่ถูกต้อง')
+            doc.seek(0)
+        return doc
 
     def clean_responsible_persons(self):
         persons = self.cleaned_data.get('responsible_persons')

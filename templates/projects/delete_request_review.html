@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}พิจารณาคำขอลบ{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-sm text-gray-500">
+    <a href="{% url 'projects:delete_request_list' %}" class="hover:underline">คำขอลบโครงการ</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-800">พิจารณา</span>
+</nav>
+
+<div class="max-w-lg">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-5">พิจารณาคำขอลบโครงการ</h2>
+
+        <!-- Project info -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+            <p class="font-medium text-gray-800">{{ delete_req.project.name }}</p>
+            <p class="text-gray-500 mt-0.5">{{ delete_req.project.project_code }} · {{ delete_req.project.fiscal_year }}</p>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <span>กิจกรรม: <b class="text-gray-700">{{ delete_req.project.activities.count }} รายการ</b></span>
+                <span>งบประมาณ: <b class="text-gray-700">{{ delete_req.project.total_budget|floatformat:2 }} บาท</b></span>
+            </div>
+        </div>
+
+        <!-- Request info -->
+        <div class="border border-gray-200 rounded-lg p-4 mb-5 text-sm space-y-2">
+            <div>
+                <span class="text-gray-400 text-xs">ผู้ขอลบ</span>
+                <p class="text-gray-800 font-medium">{{ delete_req.requested_by.get_full_name|default:delete_req.requested_by.username }}</p>
+            </div>
+            <div>
+                <span class="text-gray-400 text-xs">วันที่ขอ</span>
+                <p class="text-gray-800">{{ delete_req.requested_at|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div>
+                <span class="text-gray-400 text-xs">เหตุผล</span>
+                <p class="text-gray-800">{{ delete_req.reason }}</p>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-5 text-sm text-red-700">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <span>หากอนุมัติ ข้อมูลกิจกรรมและค่าใช้จ่ายทั้งหมดจะ<b>ถูกลบถาวร</b></span>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+                <textarea name="remark" rows="2"
+                    placeholder="เช่น เหตุผลที่ปฏิเสธ หรือข้อมูลเพิ่มเติม..."
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" name="action" value="approve"
+                    class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+                    onclick="return confirm('ยืนยันอนุมัติการลบโครงการ? การดำเนินการนี้ไม่สามารถยกเลิกได้')">
+                    อนุมัติลบ
+                </button>
+                <button type="submit" name="action" value="reject"
+                    class="px-5 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm font-medium">
+                    ปฏิเสธ
+                </button>
+                <a href="{% url 'projects:delete_request_list' %}"
+                    class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">ยกเลิก</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

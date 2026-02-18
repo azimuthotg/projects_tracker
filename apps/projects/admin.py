@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Activity, FiscalYear, Project
+from .models import Activity, FiscalYear, Project, ProjectDeleteRequest
 
 
 @admin.register(FiscalYear)
@@ -31,3 +31,12 @@ class ActivityAdmin(admin.ModelAdmin):
     list_filter = ['status', 'project__fiscal_year']
     search_fields = ['name', 'project__name', 'project__project_code']
     filter_horizontal = ['responsible_persons', 'notify_persons']
+
+
+@admin.register(ProjectDeleteRequest)
+class ProjectDeleteRequestAdmin(admin.ModelAdmin):
+    list_display = ['project', 'requested_by', 'status', 'requested_at', 'reviewed_by', 'reviewed_at']
+    list_filter = ['status', 'requested_at']
+    search_fields = ['project__name', 'project__project_code', 'requested_by__username']
+    readonly_fields = ['requested_at', 'reviewed_at']
+    raw_id_fields = ['project', 'requested_by', 'reviewed_by']

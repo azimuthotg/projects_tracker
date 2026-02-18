@@ -3,6 +3,47 @@ from django.db import models
 from django.db.models import Sum
 
 
+class ProjectDeleteRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'รอพิจารณา'),
+        ('approved', 'อนุมัติ'),
+        ('rejected', 'ปฏิเสธ'),
+    ]
+
+    project = models.ForeignKey(
+        'Project',
+        on_delete=models.CASCADE,
+        related_name='delete_requests',
+        verbose_name='โครงการ',
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='project_delete_requests',
+        verbose_name='ผู้ขอลบ',
+    )
+    reason = models.TextField('เหตุผลที่ขอลบ')
+    status = models.CharField('สถานะ', max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_at = models.DateTimeField('ขอเมื่อ', auto_now_add=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reviewed_delete_requests',
+        verbose_name='ผู้พิจารณา',
+    )
+    reviewed_at = models.DateTimeField('พิจารณาเมื่อ', null=True, blank=True)
+    review_remark = models.TextField('หมายเหตุ', blank=True)
+
+    class Meta:
+        verbose_name = 'คำขอลบโครงการ'
+        verbose_name_plural = 'คำขอลบโครงการ'
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f'ขอลบ {self.project} โดย {self.requested_by} ({self.get_status_display()})'
+
+
 class FiscalYear(models.Model):
     year = models.PositiveIntegerField('ปีงบประมาณ', unique=True)
     start_date = models.DateField('วันที่เริ่ม')
@@ -21,6 +62,7 @@ class FiscalYear(models.Model):
 class Project(models.Model):
     STATUS_CHOICES = [
         ('draft', 'ร่าง'),
+        ('not_started', 'ยังไม่ดำเนินการ'),
         ('active', 'ดำเนินการ'),
         ('completed', 'เสร็จสิ้น'),
         ('cancelled', 'ยกเลิก'),
@@ -44,7 +86,8 @@ class Project(models.Model):
     total_budget = models.DecimalField('งบประมาณรวม', max_digits=12, decimal_places=2)
     start_date = models.DateField('วันที่เริ่ม')
     end_date = models.DateField('วันที่สิ้นสุด')
-    status = models.CharField('สถานะ', max_length=10, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField('สถานะ', max_length=20, choices=STATUS_CHOICES, default='draft')
+    document = models.FileField('เอกสารแนบ (PDF)', upload_to='projects/documents/', blank=True, null=True)
     responsible_persons = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='responsible_projects',

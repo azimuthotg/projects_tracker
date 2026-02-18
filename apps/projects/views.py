@@ -1,14 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from apps.accounts.decorators import role_required
 from apps.budget.models import Expense
 
 from .forms import ActivityForm, ProjectForm
-from .models import Activity, FiscalYear, Project
+from .models import Activity, FiscalYear, Project, ProjectDeleteRequest
 from .utils import get_projects_for_user
 
 
@@ -68,7 +70,7 @@ def project_create(request):
     profile = getattr(request.user, 'profile', None)
 
     if request.method == 'POST':
-        form = ProjectForm(request.POST, user=request.user)
+        form = ProjectForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             project = form.save(commit=False)
             project.created_by = request.user
@@ -96,7 +98,7 @@ def project_edit(request, pk):
         raise PermissionDenied
 
     if request.method == 'POST':
-        form = ProjectForm(request.POST, instance=project, user=request.user)
+        form = ProjectForm(request.POST, request.FILES, instance=project, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, f'แก้ไขโครงการ "{project.name}" สำเร็จ')
@@ -208,4 +210,115 @@ def activity_edit(request, project_pk, pk):
         'project': project,
         'activity': activity,
         'title': f'แก้ไขกิจกรรม: {activity.name}',
+    })
+
+
+@role_required(['planner', 'head', 'admin'])
+def project_delete_request(request, pk):
+    project = get_object_or_404(Project, pk=pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=pk).exists():
+        raise PermissionDenied
+
+    # admin ลบตรงได้เลยโดยไม่ต้องขออนุมัติ
+    if request.user.profile.role == 'admin':
+        if request.method == 'POST':
+            reason = request.POST.get('reason', '').strip()
+            if not reason:
+                messages.error(request, 'กรุณาระบุเหตุผลการลบ')
+                return render(request, 'projects/project_delete_request.html', {'project': project})
+            # บันทึก audit log ก่อนลบ
+            ProjectDeleteRequest.objects.create(
+                project=project,
+                requested_by=request.user,
+                reason=reason,
+                status='approved',
+                reviewed_by=request.user,
+                reviewed_at=timezone.now(),
+                review_remark='ลบโดย admin โดยตรง',
+            )
+            project_name = project.name
+            project.delete()
+            messages.success(request, f'ลบโครงการ "{project_name}" สำเร็จ')
+            return redirect('projects:project_list')
+        return render(request, 'projects/project_delete_request.html', {
+            'project': project,
+            'is_admin': True,
+        })
+
+    # planner/head ส่งคำขอรอ admin อนุมัติ
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, 'กรุณาระบุเหตุผลการลบ')
+            return render(request, 'projects/project_delete_request.html', {'project': project})
+        with transaction.atomic():
+            locked_project = Project.objects.select_for_update().get(pk=pk)
+            if locked_project.delete_requests.filter(status='pending').exists():
+                messages.warning(request, 'มีคำขอลบโครงการนี้รอการพิจารณาอยู่แล้ว')
+                return redirect('projects:project_detail', pk=pk)
+            ProjectDeleteRequest.objects.create(
+                project=locked_project,
+                requested_by=request.user,
+                reason=reason,
+            )
+        messages.success(request, f'ส่งคำขอลบโครงการ "{project.name}" แล้ว รอ admin อนุมัติ')
+        return redirect('projects:project_detail', pk=pk)
+
+    pending = project.delete_requests.filter(status='pending').exists()
+    if pending:
+        messages.warning(request, 'มีคำขอลบโครงการนี้รอการพิจารณาอยู่แล้ว')
+        return redirect('projects:project_detail', pk=pk)
+
+    return render(request, 'projects/project_delete_request.html', {
+        'project': project,
+        'is_admin': False,
+    })
+
+
+@role_required(['admin'])
+def delete_request_list(request):
+    pending = ProjectDeleteRequest.objects.filter(status='pending').select_related(
+        'project', 'requested_by'
+    )
+    history = ProjectDeleteRequest.objects.exclude(status='pending').select_related(
+        'project', 'requested_by', 'reviewed_by'
+    )[:50]
+    return render(request, 'projects/delete_request_list.html', {
+        'pending': pending,
+        'history': history,
+    })
+
+
+@role_required(['admin'])
+def delete_request_review(request, pk):
+    delete_req = get_object_or_404(ProjectDeleteRequest, pk=pk, status='pending')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        remark = request.POST.get('remark', '').strip()
+
+        if action not in ('approve', 'reject'):
+            messages.error(request, 'การดำเนินการไม่ถูกต้อง')
+            return redirect('projects:delete_request_list')
+
+        delete_req.reviewed_by = request.user
+        delete_req.reviewed_at = timezone.now()
+        delete_req.review_remark = remark
+
+        if action == 'approve':
+            delete_req.status = 'approved'
+            delete_req.save()
+            project_name = delete_req.project.name
+            delete_req.project.delete()
+            messages.success(request, f'อนุมัติและลบโครงการ "{project_name}" แล้ว')
+        else:
+            delete_req.status = 'rejected'
+            delete_req.save()
+            messages.info(request, f'ปฏิเสธคำขอลบโครงการ "{delete_req.project.name}" แล้ว')
+
+        return redirect('projects:delete_request_list')
+
+    return render(request, 'projects/delete_request_review.html', {
+        'delete_req': delete_req,
     })

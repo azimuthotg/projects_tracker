@@ -16,50 +16,69 @@
         <h2 class="text-2xl font-bold text-gray-800">{{ project.name }}</h2>
         <p class="text-gray-500 mt-1">{{ project.project_code }} | {{ project.fiscal_year }} | {{ project.department }}</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
         {% if user.profile.role in "planner,head,admin" %}
-        <a href="{% url 'projects:project_edit' pk=project.pk %}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm">แก้ไข</a>
-        <a href="{% url 'projects:project_delete_request' pk=project.pk %}" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm">ลบ</a>
+        <a href="{% url 'projects:project_edit' pk=project.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            แก้ไข
+        </a>
+        <a href="{% url 'projects:project_delete_request' pk=project.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            ลบ
+        </a>
         {% endif %}
         {% if project.status == 'draft' and user.profile.role in "planner,head,admin" %}
         <form method="post" action="{% url 'projects:project_status_change' pk=project.pk %}">
             {% csrf_token %}
             <input type="hidden" name="status" value="not_started">
-            <button type="submit" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">ยืนยันร่าง</button>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                ยืนยันร่าง
+            </button>
         </form>
         {% elif project.status == 'not_started' and user.profile.role in "planner,head,admin" %}
         <form method="post" action="{% url 'projects:project_status_change' pk=project.pk %}">
             {% csrf_token %}
             <input type="hidden" name="status" value="active">
-            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">เปิดดำเนินการ</button>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                เปิดดำเนินการ
+            </button>
         </form>
         {% elif project.status == 'active' and user.profile.role in "planner,head,admin" %}
         <form method="post" action="{% url 'projects:project_status_change' pk=project.pk %}">
             {% csrf_token %}
             <input type="hidden" name="status" value="completed">
-            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">เสร็จสิ้น</button>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                เสร็จสิ้น
+            </button>
         </form>
         {% endif %}
     </div>
 </div>
 
 <!-- Budget Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-        <p class="text-sm text-gray-500">งบประมาณรวม</p>
-        <p class="text-xl font-bold text-blue-900">{{ project.total_budget|floatformat:2 }}</p>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 border-l-4 border-l-blue-500">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">งบประมาณรวม</p>
+        <p class="text-xl font-bold text-blue-900 mt-1">{{ project.total_budget|floatformat:2 }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">บาท</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-        <p class="text-sm text-gray-500">จัดสรรแล้ว</p>
-        <p class="text-xl font-bold text-gray-800">{{ project.total_allocated|floatformat:2 }}</p>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 border-l-4 border-l-gray-400">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">จัดสรรแล้ว</p>
+        <p class="text-xl font-bold text-gray-800 mt-1">{{ project.total_allocated|floatformat:2 }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">บาท</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-        <p class="text-sm text-gray-500">ใช้ไปแล้ว</p>
-        <p class="text-xl font-bold text-orange-600">{{ project.total_spent|floatformat:2 }}</p>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 border-l-4 border-l-orange-400">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">ใช้ไปแล้ว</p>
+        <p class="text-xl font-bold text-orange-600 mt-1">{{ project.total_spent|floatformat:2 }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">บาท</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-        <p class="text-sm text-gray-500">คงเหลือ</p>
-        <p class="text-xl font-bold {% if project.remaining_budget > 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ project.remaining_budget|floatformat:2 }}</p>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 border-l-4 {% if project.remaining_budget > 0 %}border-l-green-500{% else %}border-l-red-500{% endif %}">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">คงเหลือ</p>
+        <p class="text-xl font-bold {% if project.remaining_budget > 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">{{ project.remaining_budget|floatformat:2 }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">บาท</p>
     </div>
 </div>
 

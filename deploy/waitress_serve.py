@@ -16,8 +16,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.production')
 from waitress import serve
 from django.core.wsgi import get_wsgi_application
 
-HOST = os.environ.get('WAITRESS_HOST', '0.0.0.0')
-PORT = int(os.environ.get('WAITRESS_PORT', '8000'))
+# เมื่อใช้ IIS เป็น reverse proxy: listen แค่ localhost (ไม่ expose ออกนอก)
+# IIS รับ HTTPS แล้วส่งต่อมาที่ 127.0.0.1:8000
+HOST    = os.environ.get('WAITRESS_HOST',    '127.0.0.1')
+PORT    = int(os.environ.get('WAITRESS_PORT',    '8000'))
 THREADS = int(os.environ.get('WAITRESS_THREADS', '8'))
 
 application = get_wsgi_application()
@@ -32,5 +34,5 @@ if __name__ == '__main__':
         channel_timeout=120,
         cleanup_interval=30,
         connection_limit=1000,
-        url_scheme='http',  # เปลี่ยนเป็น https ถ้ามี SSL
+        url_scheme='http',  # IIS จัดการ HTTPS ให้แล้ว — Waitress รับแค่ HTTP ภายใน
     )

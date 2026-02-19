@@ -34,12 +34,25 @@
                     <td class="px-6 py-4 text-sm text-right font-medium text-gray-800">{{ expense.amount|floatformat:2 }}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
                     <td class="px-6 py-4 text-center">
-                        <a href="{% url 'budget:expense_approve' pk=expense.pk %}" class="inline-flex items-center px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">ตรวจสอบ</a>
+                        <a href="{% url 'budget:expense_approve' pk=expense.pk %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            ตรวจสอบ
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">ไม่มีรายการรอการอนุมัติ</td>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center">
+                                <svg class="w-8 h-8 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">ไม่มีรายการรอการอนุมัติ</p>
+                                <p class="text-xs text-gray-400 mt-1">ทุกรายการได้รับการดำเนินการเรียบร้อยแล้ว</p>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

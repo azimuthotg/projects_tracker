@@ -60,3 +60,4 @@ if _csrf_origins:
 _script_name = env('SCRIPT_NAME', default='')
 if _script_name:
     FORCE_SCRIPT_NAME = _script_name
+    LOGIN_URL = f'{_script_name}/accounts/login/'

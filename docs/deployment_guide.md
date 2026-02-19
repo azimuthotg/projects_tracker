@@ -61,8 +61,8 @@ https://lib.npu.ac.th/projects/
 
 | ไฟล์ | ที่เก็บ | หมายเหตุ |
 |------|---------|---------|
-| cert2026.pfx | C:\project\project_tracker\cert\ | SSL Certificate *.npu.ac.th |
-| pass.txt | C:\project\project_tracker\cert\ | รหัสผ่าน PFX |
+| cert20xx.pfx | C:\project\project_tracker\cert\ | SSL Certificate *.npu.ac.th |
+| pxxx.txt | C:\project\project_tracker\cert\ | รหัสผ่าน PFX |
 | .env | C:\project\project_tracker\ | ตัวแปร environment |
 
 ### 2.3 ข้อมูล DNS

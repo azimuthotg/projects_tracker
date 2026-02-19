@@ -419,10 +419,10 @@ Get-Content "C:\project\project_tracker\logs\waitress_error.log" -Wait
 
 ### 9.4 SSL Certificate
 
-- **หมดอายุ:** 13 กุมภาพันธ์ 2570
+- **หมดอายุ:** xx xxx 2570
 - **ต้องต่ออายุก่อน:** อย่างน้อย 30 วัน
-- **ไฟล์:** `C:\project\project_tracker\cert\cert2026.pfx`
-- **รหัสผ่าน:** เก็บใน `C:\project\project_tracker\cert\pass.txt`
+- **ไฟล์:** `C:\project\project_tracker\cert\xxxx`
+- **รหัสผ่าน:** เก็บใน `C:\project\project_tracker\cert\xxxx`
 
 ---
 
@@ -447,8 +447,8 @@ Get-Content "C:\project\project_tracker\logs\waitress_error.log" -Wait
 C:\project\project_tracker\
 ├── .env                          ← Environment variables
 ├── cert\
-│   ├── cert2026.pfx             ← SSL Certificate
-│   └── pass.txt                 ← รหัสผ่าน PFX
+│   ├── certxxxx.pfx             ← SSL Certificate
+│   └── xxxx.txt                 ← รหัสผ่าน PFX
 ├── config\settings\
 │   └── production.py            ← Production settings
 ├── deploy\

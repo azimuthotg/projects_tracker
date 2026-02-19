@@ -193,9 +193,9 @@ SCRIPT_NAME=/projects
 
 # Database (MySQL)
 DB_NAME=projects_tracker
-DB_USER=admin_e
+DB_USER=xxxx
 DB_PASSWORD=ใส่-รหัสผ่าน-database
-DB_HOST=202.29.55.213
+DB_HOST=202.xx.xx.xxx
 DB_PORT=3306
 
 # Waitress
@@ -204,7 +204,7 @@ WAITRESS_PORT=8000
 WAITRESS_THREADS=8
 
 # NPU AD API
-NPU_API_BASE_URL=https://api.npu.ac.th/v2/ldap/
+NPU_API_BASE_URL=https://xxx.npu.ac.th/vx/ldap/
 NPU_API_AUTH_ENDPOINT=auth_and_get_personnel/
 NPU_API_TOKEN=ใส่-JWT-token
 NPU_API_TIMEOUT=30

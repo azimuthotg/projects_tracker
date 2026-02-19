@@ -372,8 +372,8 @@ Invoke-WebRequest -Uri "http://127.0.0.1:8000/" -UseBasicParsing
 
 ### 8.3 ทดสอบ Login
 
-- Username: `admin`
-- Password: `admin1234`
+- Username: `xxxx`
+- Password: `xxxxxxx4`
 - ต้องเข้าสู่ Dashboard ได้สำเร็จ
 
 ---

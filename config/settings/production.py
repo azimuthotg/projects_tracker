@@ -36,7 +36,7 @@ X_FRAME_OPTIONS = 'DENY'
 # IIS จัดการ SSL termination และส่ง X-Forwarded-Proto: https มาให้
 # Django อ่าน header นี้เพื่อรู้ว่า request มาจาจาก HTTPS จริง
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST    = True
+USE_X_FORWARDED_HOST    = False
 
 # IIS จัดการ HTTP→HTTPS redirect แล้ว ไม่ต้องให้ Django redirect ซ้ำ
 SECURE_SSL_REDIRECT = False

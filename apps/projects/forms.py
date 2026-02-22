@@ -95,8 +95,8 @@ class ProjectForm(forms.ModelForm):
         if doc and hasattr(doc, 'content_type'):
             if doc.content_type != 'application/pdf':
                 raise ValidationError('อนุญาตเฉพาะไฟล์ PDF เท่านั้น')
-            if doc.size > 10 * 1024 * 1024:
-                raise ValidationError('ขนาดไฟล์ต้องไม่เกิน 10 MB')
+            if doc.size > 20 * 1024 * 1024:
+                raise ValidationError('ขนาดไฟล์ต้องไม่เกิน 20 MB')
             # ตรวจ magic bytes ป้องกันการปลอม content-type
             doc.seek(0)
             if doc.read(4) != b'%PDF':

@@ -61,6 +61,8 @@ _script_name = env('SCRIPT_NAME', default='')
 if _script_name:
     FORCE_SCRIPT_NAME = _script_name
     LOGIN_URL = f'{_script_name}/accounts/login/'
+    LOGIN_REDIRECT_URL = f'{_script_name}/'
+    LOGOUT_REDIRECT_URL = f'{_script_name}/accounts/login/'
     # MEDIA_URL ต้องมี SCRIPT_NAME นำหน้า เพราะ FileField.url ไม่ผ่าน reverse()
     # จึงไม่ได้รับ FORCE_SCRIPT_NAME โดยอัตโนมัติ
     MEDIA_URL = f'{_script_name}/media/'

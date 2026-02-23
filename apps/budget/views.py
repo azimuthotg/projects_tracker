@@ -113,6 +113,34 @@ def expense_edit(request, pk):
     })
 
 
+@login_required
+def expense_link_report(request, pk):
+    """ผูก/ยกเลิกผูกรายการเบิกจ่ายกับรายงานกิจกรรมย่อย (ไม่ขึ้นกับสถานะการอนุมัติ)"""
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+
+    expense = get_object_or_404(Expense, pk=pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=expense.activity.project_id).exists():
+        raise PermissionDenied
+
+    report_id = request.POST.get('activity_report') or None
+    if report_id:
+        from apps.projects.models import ActivityReport
+        report = get_object_or_404(ActivityReport, pk=report_id, activity=expense.activity)
+        expense.activity_report = report
+        messages.success(request, f'ผูกกับรายงานครั้งที่ {report.round_number} สำเร็จ')
+    else:
+        expense.activity_report = None
+        messages.success(request, 'ยกเลิกการผูกรายงานแล้ว')
+
+    expense.save(update_fields=['activity_report'])
+    return redirect('projects:activity_detail',
+                    project_pk=expense.activity.project_id,
+                    pk=expense.activity_id)
+
+
 @role_required(['head', 'admin'])
 def approval_list(request):
     expenses = get_expenses_for_user(request.user).filter(status='pending')

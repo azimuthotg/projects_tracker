@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -15,7 +16,7 @@
     <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ title }}</h2>
     <p class="text-gray-500 mb-6">โครงการ: {{ project.name }}
         {% if project.total_budget > 0 %}
-        (งบเหลือจัดสรร: <span class="font-medium text-green-700">{{ project.remaining_budget|floatformat:2 }} บาท</span>)
+        (งบเหลือจัดสรร: <span class="font-medium text-green-700">{{ project.remaining_budget|floatformat:2|intcomma }} บาท</span>)
         {% endif %}
     </p>
 
@@ -66,9 +67,9 @@
                                 {{ src.label }}
                                 {% if src.erp_code %}<span class="text-gray-400 font-normal text-xs">({{ src.erp_code }})</span>{% endif %}
                             </td>
-                            <td class="px-3 py-2 text-right text-gray-600">{{ src.total|floatformat:2 }}</td>
-                            <td class="px-3 py-2 text-right text-gray-600">{{ src.allocated|floatformat:2 }}</td>
-                            <td class="px-3 py-2 text-right {% if src.remaining < 0 %}text-red-600 font-semibold{% else %}text-green-700{% endif %}">{{ src.remaining|floatformat:2 }}</td>
+                            <td class="px-3 py-2 text-right text-gray-600">{{ src.total|floatformat:2|intcomma }}</td>
+                            <td class="px-3 py-2 text-right text-gray-600">{{ src.allocated|floatformat:2|intcomma }}</td>
+                            <td class="px-3 py-2 text-right {% if src.remaining < 0 %}text-red-600 font-semibold{% else %}text-green-700{% endif %}">{{ src.remaining|floatformat:2|intcomma }}</td>
                             <td class="px-3 py-2">
                                 {% if src.source_type == 'government' %}
                                     {{ form.budget_government }}

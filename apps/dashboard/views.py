@@ -67,6 +67,7 @@ def index(request):
             'active_projects_count': active_projects.count(),
             'total_budget': total_budget,
             'total_spent': total_spent,
+            'remaining_budget': total_budget - total_spent,
             'budget_usage': budget_usage,
             'pending_approvals': pending_approvals,
             'recent_expenses': recent_expenses,

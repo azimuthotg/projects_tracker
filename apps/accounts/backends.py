@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import BaseBackend
 from django.utils import timezone
 
-from .models import UserProfile
+from .models import ApprovedOrganization, UserProfile
 from .npu_api import NPUApiClient, extract_user_data
 
 User = get_user_model()
@@ -74,13 +74,21 @@ class NPUAuthBackend(BaseBackend):
             logger.error("NPU response missing citizen_id for %s", username)
             return None
 
+        org_name = user_data.get('department_name', '')
+
+        # Check if the user's organization is in the approved list
+        is_org_approved = ApprovedOrganization.objects.filter(
+            name=org_name, is_active=True
+        ).exists()
+
         # Get or create Django User (username = citizen_id)
+        # is_active starts False for new users; we'll set it properly below
         user, created = User.objects.get_or_create(
             username=citizen_id,
             defaults={
                 'first_name': user_data['first_name'],
                 'last_name': user_data['last_name'],
-                'is_active': True,
+                'is_active': False,
             },
         )
 
@@ -90,7 +98,7 @@ class NPUAuthBackend(BaseBackend):
 
         if created:
             user.set_unusable_password()
-            user.save(update_fields=['first_name', 'last_name', 'password'])
+            user.save(update_fields=['first_name', 'last_name', 'password', 'is_active'])
         else:
             user.save(update_fields=['first_name', 'last_name'])
 
@@ -105,12 +113,26 @@ class NPUAuthBackend(BaseBackend):
         profile.npu_staff_id = user_data.get('npu_staff_id', '')
         profile.position_title = user_data.get('position_title', '')
         profile.employment_status = user_data.get('employment_status', '')
-        profile.organization = user_data.get('department_name', '')
+        profile.organization = org_name
         profile.source = 'npu_api'
         profile.last_npu_sync = user_data['last_npu_sync']
 
-        # แผนก (department) → admin เลือกให้ทีหลัง ไม่ auto-match จาก AD
+        # --- Approval logic ---
+        if profile.approval_status == 'rejected':
+            # Admin explicitly rejected — never auto-approve
+            pass
+        elif is_org_approved:
+            # Org is approved → activate (covers both new and pending users)
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+            profile.approval_status = 'approved'
+        elif created:
+            # New user from non-approved org → pending
+            profile.approval_status = 'pending'
+            logger.info("New NPU user from unapproved org, set to pending: %s (%s)", citizen_id, org_name)
+        # else: existing approved user from org that was later removed → keep approved
 
+        # แผนก (department) → admin เลือกให้ทีหลัง ไม่ auto-match จาก AD
         profile.save()
 
         if created:

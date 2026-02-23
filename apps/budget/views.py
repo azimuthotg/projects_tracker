@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from apps.accounts.audit import get_client_ip, log_action
 from apps.accounts.decorators import role_required
 from apps.projects.utils import get_projects_for_user
 
@@ -48,6 +49,12 @@ def expense_create(request, activity_pk=None):
             if not projects.filter(pk=expense.activity.project_id).exists():
                 raise PermissionDenied
             expense.save()
+            log_action(
+                actor=request.user, action='EXPENSE_CREATE',
+                target_repr=f'{expense.activity.project.project_code} / {expense.activity.name} — {expense.description}',
+                detail=f'จำนวน: {expense.amount} บาท',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, 'บันทึกรายการเบิกจ่ายสำเร็จ')
             return redirect('projects:activity_detail',
                             project_pk=expense.activity.project_id,
@@ -86,6 +93,12 @@ def expense_edit(request, pk):
         form = ExpenseForm(request.POST, request.FILES, instance=expense)
         if form.is_valid():
             form.save()
+            log_action(
+                actor=request.user, action='EXPENSE_UPDATE',
+                target_repr=f'{expense.activity.project.project_code} / {expense.activity.name} — {expense.description}',
+                detail=f'จำนวน: {expense.amount} บาท',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, 'แก้ไขรายการเบิกจ่ายสำเร็จ')
             return redirect('projects:activity_detail',
                             project_pk=expense.activity.project_id,
@@ -167,7 +180,15 @@ def expense_delete(request, pk):
 
     project_pk = expense.activity.project_id
     activity_pk = expense.activity_id
+    expense_repr = f'{expense.activity.project.project_code} / {expense.activity.name} — {expense.description}'
+    expense_amount = expense.amount
     expense.delete()
+    log_action(
+        actor=request.user, action='EXPENSE_DELETE',
+        target_repr=expense_repr,
+        detail=f'จำนวน: {expense_amount} บาท',
+        ip_address=get_client_ip(request),
+    )
     messages.success(request, 'ลบรายการเบิกจ่ายสำเร็จ')
     return redirect('projects:activity_detail', project_pk=project_pk, pk=activity_pk)
 
@@ -203,6 +224,13 @@ def expense_approve(request, pk):
             expense.remark = form.cleaned_data.get('remark', '')
             expense.save()
 
+            audit_action = 'EXPENSE_APPROVE' if action == 'approved' else 'EXPENSE_REJECT'
+            log_action(
+                actor=request.user, action=audit_action,
+                target_repr=f'{expense.activity.project.project_code} / {expense.activity.name} — {expense.description}',
+                detail=f'จำนวน: {expense.amount} บาท | หมายเหตุ: {expense.remark}',
+                ip_address=get_client_ip(request),
+            )
             status_text = 'อนุมัติ' if action == 'approved' else 'ไม่อนุมัติ'
             messages.success(request, f'{status_text}รายการเบิกจ่ายสำเร็จ')
             return redirect('budget:approval_list')

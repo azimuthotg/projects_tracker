@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize form_tags %}
 
 {% block title %}รายการเบิกจ่าย{% endblock %}
 
@@ -54,14 +55,14 @@
             <tbody class="divide-y divide-gray-200">
                 {% for expense in expenses %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.expense_date|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.expense_date|thaidate }}</td>
                     <td class="px-6 py-4 text-sm">
                         <a href="{% url 'projects:project_detail' pk=expense.activity.project.pk %}" class="text-blue-900 hover:underline">{{ expense.activity.project.project_code }}</a>
                         <span class="text-gray-400 mx-1">/</span>
                         <span class="text-gray-600">{{ expense.activity.name }}</span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-800">{{ expense.description }}</td>
-                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ expense.amount|floatformat:2 }}</td>
+                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ expense.amount|floatformat:2|intcomma }}</td>
                     <td class="px-6 py-4 text-center">
                         {% if expense.status == 'pending' %}
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ expense.get_status_display }}</span>

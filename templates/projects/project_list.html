@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}โครงการ{% endblock %}
 
@@ -85,9 +86,9 @@
                     <td class="px-4 py-3 text-sm text-gray-700">
                         {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800 whitespace-nowrap">{{ project.total_budget|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800 whitespace-nowrap">{{ project.total_budget|floatformat:2|intcomma }}</td>
                     <td class="px-4 py-3 text-sm text-right">
-                        <div class="text-gray-800 whitespace-nowrap">{{ project.total_spent|floatformat:2 }}</div>
+                        <div class="text-gray-800 whitespace-nowrap">{{ project.total_spent|floatformat:2|intcomma }}</div>
                         <div class="w-28 mt-1 ml-auto">
                             {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
                         </div>
@@ -121,13 +122,20 @@
                     <td class="px-4 py-2 text-xs text-gray-600">
                         {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
                     </td>
-                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap">{{ activity.allocated_budget|floatformat:2 }}</td>
+                    {% if activity.no_budget %}
+                    <td class="px-4 py-2 text-xs text-center">
+                        <span class="inline-block px-2 py-0.5 rounded-full bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">ไม่ใช้งบประมาณ</span>
+                    </td>
+                    <td class="px-4 py-2 text-xs text-center text-gray-300">—</td>
+                    {% else %}
+                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
                     <td class="px-4 py-2 text-xs text-right">
-                        <div class="text-gray-600 whitespace-nowrap">{{ activity.total_spent|floatformat:2 }}</div>
+                        <div class="text-gray-600 whitespace-nowrap">{{ activity.total_spent|floatformat:2|intcomma }}</div>
                         <div class="w-24 mt-0.5 ml-auto">
                             {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
                         </div>
                     </td>
+                    {% endif %}
                     <td class="px-4 py-2 text-center">
                         {% if activity.status == 'pending' %}
                         <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{{ activity.get_status_display }}</span>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load form_tags %}
 
 {% block title %}จัดการปีงบประมาณ{% endblock %}
 
@@ -31,8 +32,8 @@
                 {% for fy in fiscal_years %}
                 <tr class="border-b border-gray-100 hover:bg-gray-50">
                     <td class="py-3 px-4 text-gray-800 font-medium">{{ fy.year }}</td>
-                    <td class="py-3 px-4 text-gray-600">{{ fy.start_date|date:"d/m/Y" }}</td>
-                    <td class="py-3 px-4 text-gray-600">{{ fy.end_date|date:"d/m/Y" }}</td>
+                    <td class="py-3 px-4 text-gray-600">{{ fy.start_date|thaidate }}</td>
+                    <td class="py-3 px-4 text-gray-600">{{ fy.end_date|thaidate }}</td>
                     <td class="py-3 px-4 text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">{{ fy.project_count }}</span>
                     </td>

@@ -2,6 +2,7 @@
 Budget progress bar component.
 Usage: {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent spent=activity.total_spent allocated=activity.allocated_budget %}
 {% endcomment %}
+{% load humanize %}
 <div class="group relative">
     <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
         {% if percent < 60 %}
@@ -23,7 +24,7 @@ Usage: {% include "components/_budget_bar.html" with percent=activity.budget_usa
             {{ percent|floatformat:1 }}%
         </span>
         {% if spent and allocated %}
-        <span class="text-xs text-gray-400 hidden group-hover:inline">{{ spent|floatformat:0 }} / {{ allocated|floatformat:0 }}</span>
+        <span class="text-xs text-gray-400 hidden group-hover:inline">{{ spent|floatformat:0|intcomma }} / {{ allocated|floatformat:0|intcomma }}</span>
         {% endif %}
     </div>
 
@@ -32,11 +33,11 @@ Usage: {% include "components/_budget_bar.html" with percent=activity.budget_usa
     <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
         <div class="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl">
             <div class="flex gap-3">
-                <span>ใช้ไป <strong>{{ spent|floatformat:2 }}</strong></span>
+                <span>ใช้ไป <strong>{{ spent|floatformat:2|intcomma }}</strong></span>
                 <span class="text-gray-400">|</span>
                 <span>คงเหลือ <strong
                     {% if percent >= 80 %}class="text-red-300"{% else %}class="text-green-300"{% endif %}>
-                    {% if allocated and spent %}{{ allocated|floatformat:2 }}{% endif %}
+                    {% if allocated and spent %}{{ allocated|floatformat:2|intcomma }}{% endif %}
                 </strong></span>
             </div>
         </div>

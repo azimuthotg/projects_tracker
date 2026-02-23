@@ -1,8 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
-from .models import Department, UserProfile
+from .models import ApprovedOrganization, Department, UserProfile
 from apps.projects.models import FiscalYear
 
 TAILWIND_INPUT = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -21,6 +22,33 @@ class LoginForm(AuthenticationForm):
             'class': TAILWIND_INPUT,
             'placeholder': 'รหัสผ่าน',
         })
+
+    def confirm_login_allowed(self, user):
+        if not user.is_active:
+            profile = getattr(user, 'profile', None)
+            if profile:
+                if profile.approval_status == 'pending':
+                    raise ValidationError(
+                        'บัญชีของคุณอยู่ระหว่างรอการอนุมัติจากผู้ดูแลระบบ กรุณารอการยืนยัน',
+                        code='pending_approval',
+                    )
+                if profile.approval_status == 'rejected':
+                    raise ValidationError(
+                        'บัญชีของคุณถูกปฏิเสธการเข้าใช้งาน กรุณาติดต่อผู้ดูแลระบบ',
+                        code='rejected',
+                    )
+            raise ValidationError(self.error_messages['inactive'], code='inactive')
+
+
+class ApprovedOrganizationForm(forms.ModelForm):
+    class Meta:
+        model = ApprovedOrganization
+        fields = ['name', 'note', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
+            'note': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
+            'is_active': forms.CheckboxInput(attrs={'class': TAILWIND_CHECKBOX}),
+        }
 
 
 class UserCreateForm(forms.Form):

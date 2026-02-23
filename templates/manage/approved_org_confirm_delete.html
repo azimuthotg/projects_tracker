@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}ลบหน่วยงาน{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+    <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-800 mb-2">ลบหน่วยงาน</h3>
+    <p class="text-sm text-gray-600 mb-1">คุณต้องการลบหน่วยงาน</p>
+    <p class="text-base font-medium text-gray-800 mb-4">{{ org.name }}</p>
+    <p class="text-xs text-gray-500 mb-6">ผู้ใช้จากหน่วยงานนี้จะต้องรอการอนุมัติจาก admin เมื่อเข้าสู่ระบบครั้งหน้า (เฉพาะผู้ใช้ใหม่ ผู้ใช้เดิมที่อนุมัติแล้วจะยังเข้าใช้ได้ปกติ)</p>
+    <div class="flex gap-3 justify-center">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">ยืนยันการลบ</button>
+        </form>
+        <a href="{% url 'accounts:approved_org_list' %}" class="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">ยกเลิก</a>
+    </div>
+</div>
+{% endblock %}

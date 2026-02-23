@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize form_tags %}
 
 {% block title %}พิจารณาคำขอลบ{% endblock %}
 
@@ -19,7 +20,7 @@
             <p class="text-gray-500 mt-0.5">{{ delete_req.project.project_code }} · {{ delete_req.project.fiscal_year }}</p>
             <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <span>กิจกรรม: <b class="text-gray-700">{{ delete_req.project.activities.count }} รายการ</b></span>
-                <span>งบประมาณ: <b class="text-gray-700">{{ delete_req.project.total_budget|floatformat:2 }} บาท</b></span>
+                <span>งบประมาณ: <b class="text-gray-700">{{ delete_req.project.total_budget|floatformat:2|intcomma }} บาท</b></span>
             </div>
         </div>
 
@@ -31,7 +32,7 @@
             </div>
             <div>
                 <span class="text-gray-400 text-xs">วันที่ขอ</span>
-                <p class="text-gray-800">{{ delete_req.requested_at|date:"d/m/Y H:i" }}</p>
+                <p class="text-gray-800">{{ delete_req.requested_at|thaidate_time }}</p>
             </div>
             <div>
                 <span class="text-gray-400 text-xs">เหตุผล</span>

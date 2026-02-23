@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block title %}{% if is_edit %}แก้ไขหน่วยงาน{% else %}เพิ่มหน่วยงาน Auto-Approve{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">
+        {% if is_edit %}แก้ไขหน่วยงาน{% else %}เพิ่มหน่วยงาน Auto-Approve{% endif %}
+    </h2>
+    <p class="text-gray-500 mt-1">ผู้ใช้จากหน่วยงานนี้จะเข้าใช้งานได้ทันทีโดยไม่ต้องรออนุมัติ</p>
+</div>
+
+{% if not is_edit and pending_orgs %}
+<!-- Org names from pending users -->
+<div class="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-4 mb-5">
+    <p class="text-sm font-medium text-yellow-800 mb-3">
+        หน่วยงานจากผู้ใช้ที่รออนุมัติอยู่ — คลิกเพื่อเลือก
+    </p>
+    <div class="flex flex-wrap gap-2">
+        {% for org_name in pending_orgs %}
+        <button type="button"
+                onclick="selectOrg('{{ org_name|escapejs }}')"
+                class="px-3 py-1.5 text-sm bg-white border border-yellow-300 text-yellow-900 rounded-lg hover:bg-yellow-100 hover:border-yellow-400 transition-colors cursor-pointer text-left">
+            {{ org_name }}
+        </button>
+        {% endfor %}
+    </div>
+</div>
+{% elif not is_edit %}
+<div class="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 mb-5 text-sm text-gray-500">
+    ขณะนี้ไม่มีผู้ใช้รออนุมัติ — กรอกชื่อหน่วยงานด้านล่างได้เลย
+</div>
+{% endif %}
+
+<div class="max-w-xl bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <form method="post" id="org-form">
+        {% csrf_token %}
+        {% for field in form %}
+            {% include "components/_form_field.html" with field=field %}
+        {% endfor %}
+        <div class="flex gap-3 mt-6">
+            <button type="submit" class="px-5 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm font-medium">
+                {% if is_edit %}บันทึก{% else %}เพิ่มหน่วยงาน{% endif %}
+            </button>
+            <a href="{% url 'accounts:approved_org_list' %}" class="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectOrg(name) {
+    const input = document.querySelector('#org-form input[name="name"]');
+    if (input) {
+        input.value = name;
+        input.focus();
+        // Highlight selected chip
+        document.querySelectorAll('[onclick^="selectOrg"]').forEach(btn => {
+            btn.classList.remove('bg-yellow-200', 'border-yellow-500', 'font-semibold');
+        });
+        event.currentTarget.classList.add('bg-yellow-200', 'border-yellow-500', 'font-semibold');
+    }
+}
+</script>
+{% endblock %}

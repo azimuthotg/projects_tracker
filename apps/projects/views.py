@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from apps.accounts.audit import get_client_ip, log_action
 from apps.accounts.decorators import role_required
 from apps.budget.models import Expense
 
@@ -82,6 +83,11 @@ def project_create(request):
             form.save_m2m()
             budget_formset.instance = project
             budget_formset.save()
+            log_action(
+                actor=request.user, action='PROJECT_CREATE',
+                target_repr=f'{project.project_code} - {project.name}',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, f'สร้างโครงการ "{project.name}" สำเร็จ')
             return redirect('projects:project_detail', pk=project.pk)
     else:
@@ -111,6 +117,11 @@ def project_edit(request, pk):
         if form.is_valid() and budget_formset.is_valid():
             form.save()
             budget_formset.save()
+            log_action(
+                actor=request.user, action='PROJECT_UPDATE',
+                target_repr=f'{project.project_code} - {project.name}',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, f'แก้ไขโครงการ "{project.name}" สำเร็จ')
             return redirect('projects:project_detail', pk=project.pk)
     else:
@@ -144,8 +155,15 @@ def project_status_change(request, pk):
         messages.error(request, 'สถานะไม่ถูกต้อง')
         return redirect('projects:project_detail', pk=pk)
 
+    old_status = project.status
     project.status = new_status
     project.save()
+    log_action(
+        actor=request.user, action='PROJECT_STATUS',
+        target_repr=f'{project.project_code} - {project.name}',
+        detail=f'สถานะ: {old_status} → {new_status}',
+        ip_address=get_client_ip(request),
+    )
     messages.success(request, f'เปลี่ยนสถานะโครงการเป็น "{project.get_status_display()}" สำเร็จ')
     return redirect('projects:project_detail', pk=pk)
 
@@ -191,6 +209,11 @@ def activity_create(request, project_pk):
             activity.activity_number = max_num + 1
             activity.save()
             form.save_m2m()
+            log_action(
+                actor=request.user, action='ACTIVITY_CREATE',
+                target_repr=f'{project.project_code} / กิจกรรม {activity.activity_number}: {activity.name}',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, f'เพิ่มกิจกรรม "{activity.name}" สำเร็จ')
             return redirect('projects:project_detail', pk=project.pk)
     else:
@@ -217,6 +240,11 @@ def activity_edit(request, project_pk, pk):
         form = ActivityForm(request.POST, instance=activity, project=project, user=request.user)
         if form.is_valid():
             form.save()
+            log_action(
+                actor=request.user, action='ACTIVITY_UPDATE',
+                target_repr=f'{project.project_code} / กิจกรรม {activity.activity_number}: {activity.name}',
+                ip_address=get_client_ip(request),
+            )
             messages.success(request, f'แก้ไขกิจกรรม "{activity.name}" สำเร็จ')
             return redirect('projects:activity_detail', project_pk=project.pk, pk=activity.pk)
     else:
@@ -256,6 +284,13 @@ def project_delete_request(request, pk):
                 review_remark='ลบโดย admin โดยตรง',
             )
             project_name = project.name
+            project_code = project.project_code
+            log_action(
+                actor=request.user, action='PROJECT_DELETE',
+                target_repr=f'{project_code} - {project_name}',
+                detail=f'เหตุผล: {reason}',
+                ip_address=get_client_ip(request),
+            )
             project.delete()
             messages.success(request, f'ลบโครงการ "{project_name}" สำเร็จ')
             return redirect('projects:project_list')
@@ -280,6 +315,12 @@ def project_delete_request(request, pk):
                 requested_by=request.user,
                 reason=reason,
             )
+        log_action(
+            actor=request.user, action='PROJECT_DELETE_REQUEST',
+            target_repr=f'{project.project_code} - {project.name}',
+            detail=f'เหตุผล: {reason}',
+            ip_address=get_client_ip(request),
+        )
         messages.success(request, f'ส่งคำขอลบโครงการ "{project.name}" แล้ว รอ admin อนุมัติ')
         return redirect('projects:project_detail', pk=pk)
 
@@ -409,11 +450,24 @@ def delete_request_review(request, pk):
             delete_req.status = 'approved'
             delete_req.save()
             project_name = delete_req.project.name
+            project_code = delete_req.project.project_code
+            log_action(
+                actor=request.user, action='PROJECT_DELETE_APPROVE',
+                target_repr=f'{project_code} - {project_name}',
+                detail=f'หมายเหตุ: {remark}',
+                ip_address=get_client_ip(request),
+            )
             delete_req.project.delete()
             messages.success(request, f'อนุมัติและลบโครงการ "{project_name}" แล้ว')
         else:
             delete_req.status = 'rejected'
             delete_req.save()
+            log_action(
+                actor=request.user, action='PROJECT_DELETE_REJECT',
+                target_repr=f'{delete_req.project.project_code} - {delete_req.project.name}',
+                detail=f'หมายเหตุ: {remark}',
+                ip_address=get_client_ip(request),
+            )
             messages.info(request, f'ปฏิเสธคำขอลบโครงการ "{delete_req.project.name}" แล้ว')
 
         return redirect('projects:delete_request_list')

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}ขอลบโครงการ{% endblock %}
 
@@ -34,7 +35,7 @@
             <p class="text-gray-500 mt-0.5">{{ project.project_code }} · {{ project.fiscal_year }} · {{ project.department }}</p>
             <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <span>กิจกรรม: <b class="text-gray-700">{{ project.activities.count }} รายการ</b></span>
-                <span>งบประมาณรวม: <b class="text-gray-700">{{ project.total_budget|floatformat:2 }} บาท</b></span>
+                <span>งบประมาณรวม: <b class="text-gray-700">{{ project.total_budget|floatformat:2|intcomma }} บาท</b></span>
             </div>
         </div>
 

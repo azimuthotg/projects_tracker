@@ -2,11 +2,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
+from .audit import get_client_ip, log_action
 from .decorators import role_required
 from .forms import (
+    ApprovedOrganizationForm,
     DepartmentForm,
     FiscalYearForm,
     LoginForm,
@@ -14,7 +17,7 @@ from .forms import (
     UserCreateForm,
     UserEditForm,
 )
-from .models import Department, UserProfile
+from .models import ApprovedOrganization, AuditLog, Department, UserProfile
 from apps.projects.models import FiscalYear, Project
 from apps.budget.models import Expense
 
@@ -123,19 +126,40 @@ def user_edit(request, pk):
             if pw_form.is_valid():
                 target_user.set_password(pw_form.cleaned_data['new_password'])
                 target_user.save()
+                log_action(
+                    actor=request.user, action='USER_PASSWORD_RESET',
+                    target_repr=target_user.username,
+                    detail=f'รีเซ็ตรหัสผ่านของ {target_user.username}',
+                    ip_address=get_client_ip(request), target_user=target_user,
+                )
                 # เปลี่ยน source เป็น manual ถ้าเดิมเป็น npu_api
                 if hasattr(target_user, 'profile') and target_user.profile.source == 'npu_api':
                     target_user.profile.source = 'manual'
                     target_user.profile.save(update_fields=['source'])
+                    log_action(
+                        actor=request.user, action='USER_SOURCE_CHANGE',
+                        target_repr=target_user.username,
+                        detail=f'เปลี่ยน source จาก npu_api → manual',
+                        ip_address=get_client_ip(request), target_user=target_user,
+                    )
                     messages.success(request, f'รีเซ็ตรหัสผ่านของ "{target_user.username}" สำเร็จ (เปลี่ยนเป็น Local User)')
                 else:
                     messages.success(request, f'รีเซ็ตรหัสผ่านของ "{target_user.username}" สำเร็จ')
                 return redirect('accounts:user_edit', pk=pk)
             form = UserEditForm(user_instance=target_user)
         else:
+            old_role = getattr(getattr(target_user, 'profile', None), 'role', None)
             form = UserEditForm(request.POST, user_instance=target_user)
             if form.is_valid():
                 form.save()
+                new_role = getattr(getattr(target_user, 'profile', None), 'role', None)
+                if old_role and new_role and old_role != new_role:
+                    log_action(
+                        actor=request.user, action='USER_ROLE_CHANGE',
+                        target_repr=target_user.username,
+                        detail=f'เปลี่ยนบทบาท {old_role} → {new_role}',
+                        ip_address=get_client_ip(request), target_user=target_user,
+                    )
                 messages.success(request, f'แก้ไขผู้ใช้ "{target_user.username}" สำเร็จ')
                 return redirect('accounts:user_list')
     else:
@@ -160,6 +184,12 @@ def user_toggle_active(request, pk):
     target_user.is_active = not target_user.is_active
     target_user.save()
     status = 'เปิดใช้งาน' if target_user.is_active else 'ปิดใช้งาน'
+    log_action(
+        actor=request.user, action='USER_TOGGLE_ACTIVE',
+        target_repr=target_user.username,
+        detail=f'{status}ผู้ใช้ {target_user.username}',
+        ip_address=get_client_ip(request), target_user=target_user,
+    )
     messages.success(request, f'{status}ผู้ใช้ "{target_user.username}" สำเร็จ')
     return redirect('accounts:user_list')
 
@@ -304,3 +334,174 @@ def fiscalyear_delete(request, pk):
         'fiscalyear': fy,
         'project_count': project_count,
     })
+
+
+# ── Approved Organizations ───────────────────────────────────────────
+
+@role_required(['admin'])
+def approved_org_list(request):
+    orgs = ApprovedOrganization.objects.all()
+    return render(request, 'manage/approved_org_list.html', {'orgs': orgs})
+
+
+@role_required(['admin'])
+def approved_org_create(request):
+    if request.method == 'POST':
+        form = ApprovedOrganizationForm(request.POST)
+        if form.is_valid():
+            org = form.save()
+            messages.success(request, f'เพิ่มหน่วยงาน "{org.name}" สำเร็จ')
+            return redirect('accounts:approved_org_list')
+    else:
+        form = ApprovedOrganizationForm()
+
+    # Distinct org names from pending users that are not yet approved
+    existing_names = ApprovedOrganization.objects.values_list('name', flat=True)
+    pending_orgs = (
+        UserProfile.objects
+        .filter(approval_status='pending')
+        .exclude(organization='')
+        .exclude(organization__in=existing_names)
+        .values_list('organization', flat=True)
+        .distinct()
+        .order_by('organization')
+    )
+
+    return render(request, 'manage/approved_org_form.html', {
+        'form': form,
+        'is_edit': False,
+        'pending_orgs': pending_orgs,
+    })
+
+
+@role_required(['admin'])
+def approved_org_edit(request, pk):
+    org = get_object_or_404(ApprovedOrganization, pk=pk)
+    if request.method == 'POST':
+        form = ApprovedOrganizationForm(request.POST, instance=org)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'แก้ไขหน่วยงาน "{org.name}" สำเร็จ')
+            return redirect('accounts:approved_org_list')
+    else:
+        form = ApprovedOrganizationForm(instance=org)
+    return render(request, 'manage/approved_org_form.html', {'form': form, 'is_edit': True, 'org': org})
+
+
+@role_required(['admin'])
+def approved_org_delete(request, pk):
+    org = get_object_or_404(ApprovedOrganization, pk=pk)
+    if request.method == 'POST':
+        name = org.name
+        org.delete()
+        messages.success(request, f'ลบหน่วยงาน "{name}" แล้ว')
+        return redirect('accounts:approved_org_list')
+    return render(request, 'manage/approved_org_confirm_delete.html', {'org': org})
+
+
+# ── Pending Users ─────────────────────────────────────────────────────
+
+@role_required(['admin'])
+def pending_user_list(request):
+    pending = User.objects.filter(
+        profile__approval_status='pending', is_active=False
+    ).select_related('profile', 'profile__department').order_by('date_joined')
+
+    rejected = User.objects.filter(
+        profile__approval_status='rejected'
+    ).select_related('profile').order_by('-date_joined')[:20]
+
+    return render(request, 'manage/pending_user_list.html', {
+        'pending': pending,
+        'rejected': rejected,
+    })
+
+
+@role_required(['admin'])
+def pending_user_action(request, pk):
+    if request.method != 'POST':
+        return redirect('accounts:pending_user_list')
+
+    target_user = get_object_or_404(User, pk=pk)
+    action = request.POST.get('action')
+
+    if action not in ('approve', 'reject'):
+        messages.error(request, 'การดำเนินการไม่ถูกต้อง')
+        return redirect('accounts:pending_user_list')
+
+    profile = getattr(target_user, 'profile', None)
+    if not profile:
+        messages.error(request, 'ไม่พบโปรไฟล์ผู้ใช้')
+        return redirect('accounts:pending_user_list')
+
+    if action == 'approve':
+        target_user.is_active = True
+        target_user.save(update_fields=['is_active'])
+        profile.approval_status = 'approved'
+        profile.save(update_fields=['approval_status'])
+        log_action(
+            actor=request.user, action='USER_APPROVE',
+            target_repr=target_user.get_full_name() or target_user.username,
+            detail=f'หน่วยงาน: {profile.organization}',
+            ip_address=get_client_ip(request), target_user=target_user,
+        )
+        messages.success(request, f'อนุมัติผู้ใช้ "{target_user.get_full_name() or target_user.username}" สำเร็จ')
+    else:
+        target_user.is_active = False
+        target_user.save(update_fields=['is_active'])
+        profile.approval_status = 'rejected'
+        profile.save(update_fields=['approval_status'])
+        log_action(
+            actor=request.user, action='USER_REJECT',
+            target_repr=target_user.get_full_name() or target_user.username,
+            detail=f'หน่วยงาน: {profile.organization}',
+            ip_address=get_client_ip(request), target_user=target_user,
+        )
+        messages.info(request, f'ปฏิเสธผู้ใช้ "{target_user.get_full_name() or target_user.username}" แล้ว')
+
+    return redirect('accounts:pending_user_list')
+
+
+# ── Audit Log ────────────────────────────────────────────────────────
+
+@role_required(['admin'])
+def audit_log_list(request):
+    logs = AuditLog.objects.select_related('user', 'target_user').all()
+
+    # Filters
+    action = request.GET.get('action', '').strip()
+    level = request.GET.get('level', '').strip()
+    username = request.GET.get('username', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+
+    if action:
+        logs = logs.filter(action=action)
+    if level:
+        logs = logs.filter(level=level)
+    if username:
+        logs = logs.filter(
+            Q(user__username__icontains=username) |
+            Q(target_repr__icontains=username)
+        )
+    if date_from:
+        logs = logs.filter(created_at__date__gte=date_from)
+    if date_to:
+        logs = logs.filter(created_at__date__lte=date_to)
+
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'action_choices': AuditLog.ACTION_CHOICES,
+        'level_choices': AuditLog.LEVEL_CHOICES,
+        'current_action': action,
+        'current_level': level,
+        'current_username': username,
+        'current_date_from': date_from,
+        'current_date_to': date_to,
+        'total_count': logs.count(),
+    }
+    return render(request, 'manage/audit_log.html', context)

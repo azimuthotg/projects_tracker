@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load form_tags %}
 
 {% block title %}ยืนยันการลบรายงาน{% endblock %}
 
@@ -19,7 +20,7 @@
             <p><span class="text-gray-500">กิจกรรม:</span> <span class="font-medium">{{ activity.name }}</span></p>
             <p><span class="text-gray-500">ครั้งที่:</span> <span class="font-medium">{{ report.round_number }}</span></p>
             <p><span class="text-gray-500">หัวข้อ:</span> <span class="font-medium">{{ report.title }}</span></p>
-            <p><span class="text-gray-500">วันที่:</span> <span class="font-medium">{{ report.date|date:"d/m/Y" }}</span></p>
+            <p><span class="text-gray-500">วันที่:</span> <span class="font-medium">{{ report.date|thaidate }}</span></p>
         </div>
 
         {% if report.expenses.exists %}

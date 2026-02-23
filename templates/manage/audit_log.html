@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Audit Log</h2>
+        <p class="text-gray-500 mt-1">บันทึกการดำเนินการสำคัญในระบบ</p>
+    </div>
+    <div class="text-sm text-gray-500">
+        ทั้งหมด <span class="font-semibold text-gray-700">{{ total_count }}</span> รายการ
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <form method="get" class="flex flex-col sm:flex-row gap-3 flex-wrap">
+        <select name="action" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- การกระทำ --</option>
+            {% for val, label in action_choices %}
+            <option value="{{ val }}" {% if current_action == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="level" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- ระดับ --</option>
+            {% for val, label in level_choices %}
+            <option value="{{ val }}" {% if current_level == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="username" value="{{ current_username }}" placeholder="ชื่อผู้ใช้ / เป้าหมาย..."
+               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 flex-1 min-w-[160px]">
+        <input type="date" name="date_from" value="{{ current_date_from }}"
+               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+        <input type="date" name="date_to" value="{{ current_date_to }}"
+               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            ค้นหา
+        </button>
+        <a href="{% url 'accounts:audit_log_list' %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            ล้าง
+        </a>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">เวลา</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ผู้ดำเนินการ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">การกระทำ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เป้าหมาย</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">IP</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for log in page_obj %}
+                <tr class="hover:bg-gray-50/60">
+                    <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{{ log.created_at|thaidate_time }}</td>
+                    <td class="px-4 py-3 text-xs font-medium text-gray-700 whitespace-nowrap">
+                        {% if log.user %}
+                            {{ log.user.get_full_name|default:log.user.username }}
+                        {% else %}
+                            <span class="text-gray-400 italic">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        {% if log.level == 'critical' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                                {{ log.get_action_display }}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"></span>
+                                {{ log.get_action_display }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-700 max-w-xs truncate" title="{{ log.target_repr }}">
+                        {{ log.target_repr|default:"—" }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title="{{ log.detail }}">
+                        {{ log.detail|default:"—" }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap font-mono">
+                        {{ log.ip_address|default:"—" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center">
+                                <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            </div>
+                            <p class="text-sm text-gray-400">ไม่พบรายการ</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+        <p class="text-xs text-gray-500">
+            หน้า {{ page_obj.number }} จาก {{ page_obj.paginator.num_pages }}
+        </p>
+        <div class="flex gap-1">
+            {% if page_obj.has_previous %}
+            <a href="?{% if current_action %}action={{ current_action }}&{% endif %}{% if current_level %}level={{ current_level }}&{% endif %}{% if current_username %}username={{ current_username }}&{% endif %}{% if current_date_from %}date_from={{ current_date_from }}&{% endif %}{% if current_date_to %}date_to={{ current_date_to }}&{% endif %}page={{ page_obj.previous_page_number }}"
+               class="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700">
+                &laquo; ก่อน
+            </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?{% if current_action %}action={{ current_action }}&{% endif %}{% if current_level %}level={{ current_level }}&{% endif %}{% if current_username %}username={{ current_username }}&{% endif %}{% if current_date_from %}date_from={{ current_date_from }}&{% endif %}{% if current_date_to %}date_to={{ current_date_to }}&{% endif %}page={{ page_obj.next_page_number }}"
+               class="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700">
+                ถัดไป &raquo;
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

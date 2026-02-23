@@ -3,6 +3,11 @@ from django.urls import path
 from .views import (
     CustomLoginView,
     CustomLogoutView,
+    approved_org_create,
+    approved_org_delete,
+    approved_org_edit,
+    approved_org_list,
+    audit_log_list,
     department_create,
     department_delete,
     department_edit,
@@ -14,6 +19,8 @@ from .views import (
     fiscalyear_toggle,
     manage_dashboard,
     my_profile,
+    pending_user_action,
+    pending_user_list,
     user_create,
     user_edit,
     user_list,
@@ -48,4 +55,17 @@ urlpatterns = [
     path('manage/fiscal-years/<int:pk>/edit/', fiscalyear_edit, name='fiscalyear_edit'),
     path('manage/fiscal-years/<int:pk>/toggle/', fiscalyear_toggle, name='fiscalyear_toggle'),
     path('manage/fiscal-years/<int:pk>/delete/', fiscalyear_delete, name='fiscalyear_delete'),
+
+    # Approved organizations
+    path('manage/approved-orgs/', approved_org_list, name='approved_org_list'),
+    path('manage/approved-orgs/create/', approved_org_create, name='approved_org_create'),
+    path('manage/approved-orgs/<int:pk>/edit/', approved_org_edit, name='approved_org_edit'),
+    path('manage/approved-orgs/<int:pk>/delete/', approved_org_delete, name='approved_org_delete'),
+
+    # Pending users
+    path('manage/pending-users/', pending_user_list, name='pending_user_list'),
+    path('manage/pending-users/<int:pk>/action/', pending_user_action, name='pending_user_action'),
+
+    # Audit log
+    path('manage/audit-log/', audit_log_list, name='audit_log_list'),
 ]

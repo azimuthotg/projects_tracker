@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load form_tags %}
 
 {% block title %}โปรไฟล์ของฉัน{% endblock %}
 
@@ -233,7 +234,7 @@
                 {% if profile.last_npu_sync %}
                 <div>
                     <p class="text-xs text-gray-400 mb-1">ซิงค์ข้อมูลล่าสุด</p>
-                    <p class="text-sm font-medium text-gray-800">{{ profile.last_npu_sync|date:"d/m/Y H:i" }}</p>
+                    <p class="text-sm font-medium text-gray-800">{{ profile.last_npu_sync|thaidate_time }}</p>
                 </div>
                 {% endif %}
             </div>

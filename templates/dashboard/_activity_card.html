@@ -1,0 +1,33 @@
+{% load humanize form_tags %}
+<div class="bg-white rounded-xl border {% if urgency == 'overdue' %}border-red-200{% elif urgency == 'soon' %}border-yellow-200{% else %}border-gray-200{% endif %} p-4 mb-2 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{% url 'projects:activity_detail' project_pk=activity.project_id pk=activity.pk %}"
+               class="text-sm font-medium text-blue-900 hover:underline truncate">
+                {{ activity.name }}
+            </a>
+            {% if activity.status == 'in_progress' %}
+            <span class="inline-block px-1.5 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">กำลังดำเนินการ</span>
+            {% elif activity.status == 'pending' %}
+            <span class="inline-block px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">รอดำเนินการ</span>
+            {% endif %}
+        </div>
+        <p class="text-xs text-gray-400 mt-0.5">{{ activity.project.project_code }} — {{ activity.project.name|truncatechars:40 }}</p>
+    </div>
+    <div class="flex items-center gap-4 text-xs shrink-0">
+        <div class="text-right">
+            <p class="text-gray-400">กำหนด</p>
+            <p class="font-medium {% if urgency == 'overdue' %}text-red-600{% elif urgency == 'soon' %}text-yellow-600{% else %}text-gray-700{% endif %}">
+                {{ activity.end_date|thaidate }}
+            </p>
+        </div>
+        {% if not activity.no_budget %}
+        <div class="text-right">
+            <p class="text-gray-400">คงเหลือ</p>
+            <p class="font-medium {% if activity.remaining_budget <= 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                {{ activity.remaining_budget|floatformat:2|intcomma }}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>

@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from apps.accounts.audit import get_client_ip, log_action
 from apps.accounts.decorators import role_required
-from apps.budget.models import Expense
+from apps.budget.forms import BudgetTransferForm
+from apps.budget.models import BudgetTransfer, Expense
 
 from .forms import ActivityForm, ActivityReportForm, ProjectBudgetSourceFormSet, ProjectForm
 from .models import Activity, ActivityReport, FiscalYear, Project, ProjectDeleteRequest
@@ -474,4 +475,90 @@ def delete_request_review(request, pk):
 
     return render(request, 'projects/delete_request_review.html', {
         'delete_req': delete_req,
+    })
+
+
+@role_required(['planner', 'head', 'admin'])
+def budget_transfer(request, project_pk):
+    project = get_object_or_404(Project, pk=project_pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=project_pk).exists():
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = BudgetTransferForm(request.POST, project=project)
+        if form.is_valid():
+            from_act = form.cleaned_data['from_activity']
+            to_act = form.cleaned_data['to_activity']
+            budget_type = form.cleaned_data['budget_type']
+            amount = form.cleaned_data['amount']
+            reason = form.cleaned_data['reason']
+
+            with transaction.atomic():
+                # Lock both rows
+                from_act = Activity.objects.select_for_update().get(pk=from_act.pk)
+                to_act = Activity.objects.select_for_update().get(pk=to_act.pk)
+
+                # Deduct from source
+                field = f'budget_{budget_type}'
+                setattr(from_act, field, getattr(from_act, field) - amount)
+                from_act.save()
+
+                # Add to destination
+                setattr(to_act, field, getattr(to_act, field) + amount)
+                to_act.save()
+
+                # Record transfer
+                transfer = BudgetTransfer.objects.create(
+                    project=project,
+                    from_activity=from_act,
+                    to_activity=to_act,
+                    budget_type=budget_type,
+                    amount=amount,
+                    reason=reason,
+                    transferred_by=request.user,
+                )
+
+            log_action(
+                actor=request.user, action='BUDGET_TRANSFER',
+                target_repr=f'{project.project_code} — {from_act.name} → {to_act.name}',
+                detail=(
+                    f'หมวด: {transfer.get_budget_type_display()} | '
+                    f'จำนวน: {amount:,.2f} บาท | เหตุผล: {reason}'
+                ),
+                ip_address=get_client_ip(request),
+            )
+            messages.success(
+                request,
+                f'โอนงบประมาณ {amount:,.2f} บาท ({transfer.get_budget_type_display()}) '
+                f'จาก "{from_act.name}" ไป "{to_act.name}" สำเร็จ'
+            )
+            return redirect('projects:project_detail', pk=project_pk)
+    else:
+        form = BudgetTransferForm(project=project)
+
+    transfers = BudgetTransfer.objects.filter(project=project).select_related(
+        'from_activity', 'to_activity', 'transferred_by'
+    )[:20]
+
+    return render(request, 'projects/budget_transfer_form.html', {
+        'project': project,
+        'form': form,
+        'transfers': transfers,
+    })
+
+
+@login_required
+def budget_transfer_history(request, project_pk):
+    project = get_object_or_404(Project, pk=project_pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=project_pk).exists():
+        raise PermissionDenied
+
+    transfers = BudgetTransfer.objects.filter(project=project).select_related(
+        'from_activity', 'to_activity', 'transferred_by'
+    )
+    return render(request, 'projects/budget_transfer_history.html', {
+        'project': project,
+        'transfers': transfers,
     })

@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -77,3 +77,48 @@ def index(request):
         })
 
     return render(request, 'dashboard/index.html', context)
+
+
+@login_required
+def my_tasks(request):
+    user = request.user
+    today = timezone.now().date()
+    soon = today + timedelta(days=7)
+
+    # Activities where user is responsible or notify
+    my_activities = Activity.objects.filter(
+        Q(responsible_persons=user) | Q(notify_persons=user),
+        status__in=['pending', 'in_progress'],
+    ).distinct().select_related('project')
+
+    # Sort: overdue first, then ending soon, then rest
+    overdue = my_activities.filter(end_date__lt=today)
+    ending_soon = my_activities.filter(end_date__gte=today, end_date__lte=soon)
+    active = my_activities.filter(end_date__gt=soon, status='in_progress')
+    pending_acts = my_activities.filter(end_date__gt=soon, status='pending')
+
+    # My pending expenses (created by me, still pending)
+    my_pending_expenses = Expense.objects.filter(
+        created_by=user, status='pending'
+    ).select_related('activity__project').order_by('-created_at')[:10]
+
+    # For head/admin: expenses pending approval
+    role = getattr(getattr(user, 'profile', None), 'role', 'staff')
+    pending_for_approval = None
+    if role in ('head', 'admin'):
+        pending_for_approval = get_expenses_for_user(user).filter(
+            status='pending'
+        ).select_related('activity__project', 'created_by').order_by('-created_at')[:15]
+
+    context = {
+        'today': today,
+        'soon': soon,
+        'overdue_activities': overdue,
+        'ending_soon_activities': ending_soon,
+        'active_activities': active,
+        'pending_activities': pending_acts,
+        'my_pending_expenses': my_pending_expenses,
+        'pending_for_approval': pending_for_approval,
+        'role': role,
+    }
+    return render(request, 'dashboard/my_tasks.html', context)

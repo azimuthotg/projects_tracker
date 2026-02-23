@@ -13,4 +13,7 @@ urlpatterns = [
     path('<int:pk>/approve/', views.expense_approve, name='expense_approve'),
     path('<int:pk>/link-report/', views.expense_link_report, name='expense_link_report'),
     path('<int:pk>/delete/', views.expense_delete, name='expense_delete'),
+    path('<int:pk>/comment/', views.expense_comment_add, name='expense_comment_add'),
+    path('<int:pk>/attach/', views.expense_attachment_add, name='expense_attachment_add'),
+    path('attachments/<int:pk>/delete/', views.expense_attachment_delete, name='expense_attachment_delete'),
 ]

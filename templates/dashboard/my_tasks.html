@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load humanize form_tags %}
+
+{% block title %}งานของฉัน{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">งานของฉัน</h2>
+    <p class="text-gray-500 mt-1">กิจกรรมและรายการเบิกจ่ายที่เกี่ยวข้องกับคุณ</p>
+</div>
+
+<!-- Section 1: กิจกรรมของฉัน -->
+<div class="mb-8">
+    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        กิจกรรมของฉัน
+    </h3>
+
+    {% if overdue_activities %}
+    <div class="mb-4">
+        <p class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            เลยกำหนดแล้ว
+        </p>
+        {% for act in overdue_activities %}
+        {% include "dashboard/_activity_card.html" with activity=act urgency="overdue" %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if ending_soon_activities %}
+    <div class="mb-4">
+        <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            ใกล้กำหนด (ภายใน 7 วัน)
+        </p>
+        {% for act in ending_soon_activities %}
+        {% include "dashboard/_activity_card.html" with activity=act urgency="soon" %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if active_activities %}
+    <div class="mb-4">
+        <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">กำลังดำเนินการ</p>
+        {% for act in active_activities %}
+        {% include "dashboard/_activity_card.html" with activity=act urgency="normal" %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if pending_activities %}
+    <div class="mb-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">รอดำเนินการ</p>
+        {% for act in pending_activities %}
+        {% include "dashboard/_activity_card.html" with activity=act urgency="pending" %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not overdue_activities and not ending_soon_activities and not active_activities and not pending_activities %}
+    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm text-gray-400">ไม่มีกิจกรรมที่รับผิดชอบอยู่ในขณะนี้</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Section 2: รายการเบิกจ่ายของฉัน (pending) -->
+<div class="mb-8">
+    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        รายการเบิกจ่ายของฉัน (รอการอนุมัติ)
+        {% if my_pending_expenses %}
+        <span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">{{ my_pending_expenses|length }}</span>
+        {% endif %}
+    </h3>
+
+    {% if my_pending_expenses %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">โครงการ / กิจกรรม</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for exp in my_pending_expenses %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">
+                        <a href="{% url 'projects:activity_detail' project_pk=exp.activity.project_id pk=exp.activity_id %}"
+                           class="text-blue-700 hover:underline font-medium">{{ exp.activity.project.project_code }}</a>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ exp.activity.name }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ exp.description }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ exp.expense_date|thaidate }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800">{{ exp.amount|floatformat:2|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 text-center">
+        <p class="text-sm text-gray-400">ไม่มีรายการเบิกจ่ายที่รอการอนุมัติ</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Section 3: รอการอนุมัติ (head/admin only) -->
+{% if pending_for_approval is not None %}
+<div class="mb-8">
+    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        รอการอนุมัติ
+        {% if pending_for_approval %}
+        <span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">{{ pending_for_approval|length }}</span>
+        {% endif %}
+    </h3>
+
+    {% if pending_for_approval %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">โครงการ / กิจกรรม</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้บันทึก</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for exp in pending_for_approval %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">
+                        <span class="font-medium text-gray-800">{{ exp.activity.project.project_code }}</span>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ exp.activity.name }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ exp.description }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ exp.created_by.get_full_name|default:exp.created_by.username }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800">{{ exp.amount|floatformat:2|intcomma }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="{% url 'budget:expense_approve' pk=exp.pk %}"
+                           class="inline-flex items-center gap-1 text-xs px-2 py-1 bg-blue-900 text-white rounded hover:bg-blue-800 transition-colors">
+                            ตรวจสอบ
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 text-center">
+        <p class="text-sm text-gray-400">ไม่มีรายการรอการอนุมัติ</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

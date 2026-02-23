@@ -120,6 +120,7 @@ class AuditLog(models.Model):
         ('EXPENSE_CREATE', 'บันทึกรายการเบิกจ่าย'),
         ('EXPENSE_UPDATE', 'แก้ไขรายการเบิกจ่าย'),
         ('EXPENSE_DELETE', 'ลบรายการเบิกจ่าย'),
+        ('BUDGET_TRANSFER', 'โอนงบประมาณ'),
         # Important — User management
         ('USER_ROLE_CHANGE', 'เปลี่ยนบทบาทผู้ใช้'),
         ('USER_PASSWORD_RESET', 'รีเซ็ตรหัสผ่าน'),
@@ -155,6 +156,7 @@ class AuditLog(models.Model):
         'EXPENSE_CREATE': LEVEL_CRITICAL,
         'EXPENSE_UPDATE': LEVEL_CRITICAL,
         'EXPENSE_DELETE': LEVEL_CRITICAL,
+        'BUDGET_TRANSFER': LEVEL_CRITICAL,
         'USER_ROLE_CHANGE': LEVEL_IMPORTANT,
         'USER_PASSWORD_RESET': LEVEL_IMPORTANT,
         'USER_SOURCE_CHANGE': LEVEL_IMPORTANT,

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load humanize form_tags %}
+
+{% block title %}ประวัติการโอนงบ — {{ project.project_code }}{% endblock %}
+
+{% block content %}
+<nav class="mb-5 flex items-center gap-2 text-sm text-gray-500">
+    <a href="{% url 'projects:project_list' %}" class="hover:text-blue-700 transition-colors">โครงการ</a>
+    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="{% url 'projects:project_detail' pk=project.pk %}" class="hover:text-blue-700 transition-colors">{{ project.project_code }}</a>
+    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-gray-700">ประวัติการโอนงบ</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-xl font-bold text-gray-800">ประวัติการโอนงบประมาณ</h2>
+    {% if user.profile.role in "planner,head,admin" %}
+    <a href="{% url 'projects:budget_transfer' project_pk=project.pk %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        โอนงบประมาณ
+    </a>
+    {% endif %}
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จาก → ไป</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">หมวดเงิน</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวน (บาท)</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เหตุผล</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">โดย</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for t in transfers %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-4 text-xs text-gray-500 whitespace-nowrap">{{ t.created_at|thaidate_time }}</td>
+                <td class="px-4 py-4 text-sm">
+                    <div class="font-medium text-gray-800">{{ t.from_activity.name }}</div>
+                    <div class="text-gray-400 text-xs my-0.5">↓</div>
+                    <div class="font-medium text-gray-800">{{ t.to_activity.name }}</div>
+                </td>
+                <td class="px-4 py-4 text-sm text-gray-600">{{ t.get_budget_type_display }}</td>
+                <td class="px-4 py-4 text-sm text-right font-bold text-blue-900">{{ t.amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-4 text-sm text-gray-600">{{ t.reason }}</td>
+                <td class="px-4 py-4 text-sm text-gray-500">{{ t.transferred_by.get_full_name|default:t.transferred_by.username }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="px-6 py-10 text-center text-gray-400 text-sm">ยังไม่มีประวัติการโอนงบประมาณ</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

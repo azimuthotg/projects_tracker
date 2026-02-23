@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Expense
+from .models import Expense, ExpenseAttachment
 
 TAILWIND_INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500'
 TAILWIND_FILE = (
@@ -100,6 +100,34 @@ class ExpenseForm(forms.ModelForm):
         return cleaned_data
 
 
+class ExpenseAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = ExpenseAttachment
+        fields = ['file']
+        widgets = {
+            'file': forms.ClearableFileInput(attrs={
+                'accept': 'application/pdf,image/jpeg,image/png',
+                'class': TAILWIND_FILE,
+            }),
+        }
+
+    def clean_file(self):
+        f = self.cleaned_data.get('file')
+        if not f or not hasattr(f, 'content_type'):
+            return f
+        if f.content_type not in ALLOWED_RECEIPT_TYPES:
+            raise ValidationError('อนุญาตเฉพาะไฟล์ PDF, JPG หรือ PNG เท่านั้น')
+        if f.size > 20 * 1024 * 1024:
+            raise ValidationError('ขนาดไฟล์ต้องไม่เกิน 20 MB')
+        f.seek(0)
+        header = f.read(4)
+        f.seek(0)
+        expected = ALLOWED_RECEIPT_TYPES[f.content_type]
+        if not header.startswith(expected):
+            raise ValidationError('ไฟล์ไม่ตรงกับประเภทที่ระบุ')
+        return f
+
+
 class ExpenseApprovalForm(forms.Form):
     ACTION_CHOICES = [
         ('approved', 'อนุมัติ'),
@@ -111,3 +139,71 @@ class ExpenseApprovalForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'rows': 2, 'class': TAILWIND_INPUT}),
     )
+
+
+class BudgetTransferForm(forms.Form):
+    BUDGET_TYPE_CHOICES = [
+        ('government', 'เงินแผ่นดิน'),
+        ('accumulated', 'เงินสะสม'),
+        ('revenue', 'เงินรายได้'),
+    ]
+
+    from_activity = forms.ModelChoiceField(
+        label='โอนจากกิจกรรม',
+        queryset=None,
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT, 'id': 'id_from_activity'}),
+    )
+    to_activity = forms.ModelChoiceField(
+        label='โอนไปกิจกรรม',
+        queryset=None,
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+    )
+    budget_type = forms.ChoiceField(
+        label='หมวดเงิน',
+        choices=BUDGET_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+    )
+    amount = forms.DecimalField(
+        label='จำนวนเงิน (บาท)',
+        min_value=1,
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': TAILWIND_INPUT, 'step': '0.01'}),
+    )
+    reason = forms.CharField(
+        label='เหตุผล',
+        widget=forms.Textarea(attrs={'class': TAILWIND_INPUT, 'rows': 3}),
+    )
+
+    def __init__(self, *args, project=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.projects.models import Activity
+        if project:
+            qs = Activity.objects.filter(project=project, no_budget=False)
+            self.fields['from_activity'].queryset = qs
+            self.fields['to_activity'].queryset = qs
+
+    def clean(self):
+        cleaned_data = super().clean()
+        from_act = cleaned_data.get('from_activity')
+        to_act = cleaned_data.get('to_activity')
+        budget_type = cleaned_data.get('budget_type')
+        amount = cleaned_data.get('amount')
+
+        if from_act and to_act and from_act == to_act:
+            raise forms.ValidationError('กิจกรรมต้นทางและปลายทางต้องไม่ซ้ำกัน')
+
+        if from_act and budget_type and amount:
+            available = getattr(from_act, f'budget_{budget_type}', 0)
+            remaining = from_act.remaining_budget
+            if amount > available:
+                raise forms.ValidationError(
+                    f'งบประมาณ{dict(self.BUDGET_TYPE_CHOICES).get(budget_type)} ของกิจกรรมต้นทาง '
+                    f'มีเพียง {available:,.2f} บาท'
+                )
+            if amount > remaining:
+                raise forms.ValidationError(
+                    f'งบคงเหลือของกิจกรรมต้นทางมีเพียง {remaining:,.2f} บาท '
+                    f'(ติดค่าใช้จ่ายที่อนุมัติแล้ว)'
+                )
+        return cleaned_data

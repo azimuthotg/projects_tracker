@@ -8,8 +8,8 @@ from apps.accounts.audit import get_client_ip, log_action
 from apps.accounts.decorators import role_required
 from apps.projects.utils import get_projects_for_user
 
-from .forms import ExpenseApprovalForm, ExpenseForm
-from .models import Expense
+from .forms import ExpenseApprovalForm, ExpenseAttachmentForm, ExpenseForm
+from .models import Expense, ExpenseAttachment, ExpenseComment
 from .utils import get_expenses_for_user
 
 
@@ -237,7 +237,108 @@ def expense_approve(request, pk):
     else:
         form = ExpenseApprovalForm()
 
+    comments = expense.comments.select_related('created_by').all()
+    attachments = expense.attachments.select_related('uploaded_by').all()
+    attach_form = ExpenseAttachmentForm()
+
     return render(request, 'budget/expense_approve.html', {
         'expense': expense,
         'form': form,
+        'comments': comments,
+        'attachments': attachments,
+        'attach_form': attach_form,
     })
+
+
+@login_required
+def expense_comment_add(request, pk):
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+
+    expense = get_object_or_404(Expense, pk=pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=expense.activity.project_id).exists():
+        raise PermissionDenied
+
+    text = request.POST.get('text', '').strip()
+    if text:
+        ExpenseComment.objects.create(
+            expense=expense,
+            text=text,
+            created_by=request.user,
+        )
+        messages.success(request, 'บันทึกความเห็นแล้ว')
+    else:
+        messages.error(request, 'กรุณากรอกความเห็น')
+
+    # Redirect back — support both approve page and activity_detail
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('projects:activity_detail',
+                    project_pk=expense.activity.project_id,
+                    pk=expense.activity_id)
+
+
+@login_required
+def expense_attachment_add(request, pk):
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+
+    expense = get_object_or_404(Expense, pk=pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=expense.activity.project_id).exists():
+        raise PermissionDenied
+
+    form = ExpenseAttachmentForm(request.POST, request.FILES)
+    if form.is_valid():
+        attachment = form.save(commit=False)
+        attachment.expense = expense
+        attachment.uploaded_by = request.user
+        uploaded = request.FILES.get('file')
+        if uploaded:
+            attachment.original_filename = uploaded.name
+        attachment.save()
+        messages.success(request, f'อัพโหลดไฟล์ "{attachment.original_filename}" สำเร็จ')
+    else:
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('projects:activity_detail',
+                    project_pk=expense.activity.project_id,
+                    pk=expense.activity_id)
+
+
+@login_required
+def expense_attachment_delete(request, pk):
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+
+    attachment = get_object_or_404(ExpenseAttachment, pk=pk)
+    expense = attachment.expense
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=expense.activity.project_id).exists():
+        raise PermissionDenied
+
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    if attachment.uploaded_by != request.user and role != 'admin':
+        raise PermissionDenied
+
+    filename = attachment.original_filename or attachment.file.name
+    attachment.file.delete(save=False)
+    attachment.delete()
+    messages.success(request, f'ลบไฟล์ "{filename}" แล้ว')
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('projects:activity_detail',
+                    project_pk=expense.activity.project_id,
+                    pk=expense.activity_id)

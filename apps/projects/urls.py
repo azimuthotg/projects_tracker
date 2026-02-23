@@ -19,4 +19,6 @@ urlpatterns = [
     path('activities/<int:activity_pk>/reports/create/', views.activity_report_create, name='activity_report_create'),
     path('activities/reports/<int:pk>/edit/', views.activity_report_edit, name='activity_report_edit'),
     path('activities/reports/<int:pk>/delete/', views.activity_report_delete, name='activity_report_delete'),
+    path('<int:project_pk>/budget-transfer/', views.budget_transfer, name='budget_transfer'),
+    path('<int:project_pk>/budget-transfer/history/', views.budget_transfer_history, name='budget_transfer_history'),
 ]

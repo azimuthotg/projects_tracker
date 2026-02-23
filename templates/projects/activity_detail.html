@@ -199,7 +199,7 @@
 </div>
 
 <!-- Expenses Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+<div class="bg-white rounded-xl shadow-sm border border-gray-200" id="expenses">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-800">รายการเบิกจ่าย ({{ expenses.count }})</h3>
         <a href="{% url 'budget:expense_create_for_activity' activity_pk=activity.pk %}" class="inline-flex items-center px-3 py-1.5 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
@@ -242,14 +242,34 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
                     <td class="px-6 py-4 text-center">
+                        <div class="flex flex-col items-center gap-1">
                         {% if expense.receipt_file %}
-                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                            ดูเอกสาร
+                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            หลักฐาน
                         </a>
-                        {% else %}
+                        {% endif %}
+                        {% for att in expense.attachments.all %}
+                        <a href="{{ att.file.url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            {{ att.original_filename|truncatechars:15 }}
+                        </a>
+                        {% endfor %}
+                        {% if not expense.receipt_file and not expense.attachments.exists %}
                         <span class="text-xs text-gray-300">-</span>
                         {% endif %}
+                        <!-- Upload attachment inline -->
+                        <form method="post" action="{% url 'budget:expense_attachment_add' pk=expense.pk %}"
+                              enctype="multipart/form-data" class="mt-1">
+                            {% csrf_token %}
+                            <label class="cursor-pointer inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                แนบไฟล์
+                                <input type="file" name="file" accept="application/pdf,image/jpeg,image/png"
+                                       class="hidden" onchange="this.form.submit()">
+                            </label>
+                        </form>
+                        </div>
                     </td>
                     {% if reports %}
                     <td class="px-6 py-4">
@@ -321,4 +341,66 @@
         </table>
     </div>
 </div>
+
+<!-- Expense Comments (accordion per expense) -->
+{% if expenses %}
+<div class="mt-6">
+    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        ความเห็นรายการเบิกจ่าย
+    </h3>
+    {% for expense in expenses %}
+    <div class="bg-white rounded-xl border border-gray-200 mb-3">
+        <button type="button"
+                class="w-full flex items-center justify-between px-5 py-3 text-left"
+                onclick="this.nextElementSibling.classList.toggle('hidden')">
+            <span class="text-sm font-medium text-gray-800">
+                {{ expense.description }}
+                <span class="text-gray-400 font-normal">— {{ expense.amount|floatformat:2|intcomma }} บาท</span>
+                {% with cnt=expense.comments.count %}
+                {% if cnt %}
+                <span class="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{{ cnt }}</span>
+                {% endif %}
+                {% endwith %}
+            </span>
+            <svg class="w-4 h-4 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div class="hidden border-t border-gray-100 px-5 py-4">
+            <!-- Comments list -->
+            {% for comment in expense.comments.all %}
+            <div class="flex gap-3 mb-3">
+                <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <span class="text-xs font-bold text-blue-700">{{ comment.created_by.get_full_name|default:comment.created_by.username|slice:":1" }}</span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-0.5">
+                        <span class="text-xs font-medium text-gray-700">{{ comment.created_by.get_full_name|default:comment.created_by.username }}</span>
+                        <span class="text-xs text-gray-400">{{ comment.created_at|thaidate_time }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 whitespace-pre-line">{{ comment.text }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-sm text-gray-400 mb-3">ยังไม่มีความเห็น</p>
+            {% endfor %}
+
+            <!-- Add comment form -->
+            <form method="post" action="{% url 'budget:expense_comment_add' pk=expense.pk %}" class="mt-2 flex gap-2">
+                {% csrf_token %}
+                <input type="text" name="text" placeholder="เพิ่มความเห็น..."
+                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <button type="submit"
+                        class="flex-shrink-0 inline-flex items-center gap-1 px-3 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-xs transition-colors">
+                    ส่ง
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

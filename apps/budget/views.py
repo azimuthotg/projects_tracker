@@ -40,11 +40,10 @@ def expense_list(request):
 @login_required
 def expense_create(request, activity_pk=None):
     if request.method == 'POST':
-        form = ExpenseForm(request.POST, request.FILES)
+        form = ExpenseForm(request.POST, request.FILES, activity_pk=activity_pk)
         if form.is_valid():
             expense = form.save(commit=False)
             expense.created_by = request.user
-            # Verify user has access to this activity's project
             projects = get_projects_for_user(request.user)
             if not projects.filter(pk=expense.activity.project_id).exists():
                 raise PermissionDenied
@@ -57,9 +56,8 @@ def expense_create(request, activity_pk=None):
         initial = {}
         if activity_pk:
             initial['activity'] = activity_pk
-        form = ExpenseForm(initial=initial)
+        form = ExpenseForm(initial=initial, activity_pk=activity_pk)
 
-    # Limit activity choices to user's accessible projects
     projects = get_projects_for_user(request.user)
     from apps.projects.models import Activity
     form.fields['activity'].queryset = Activity.objects.filter(
@@ -69,6 +67,7 @@ def expense_create(request, activity_pk=None):
 
     return render(request, 'budget/expense_form.html', {
         'form': form,
+        'activity_pk': activity_pk,
         'title': 'บันทึกรายการเบิกจ่าย',
     })
 
@@ -95,10 +94,16 @@ def expense_edit(request, pk):
         form = ExpenseForm(instance=expense)
 
     projects = get_projects_for_user(request.user)
-    from apps.projects.models import Activity
+    from apps.projects.models import Activity, ActivityReport
     form.fields['activity'].queryset = Activity.objects.filter(
         project__in=projects,
         status__in=['pending', 'in_progress'],
+    )
+    form.fields['activity_report'].queryset = ActivityReport.objects.filter(
+        activity=expense.activity
+    )
+    form.fields['activity_report'].label_from_instance = (
+        lambda r: f'ครั้งที่ {r.round_number}: {r.title} ({r.date.strftime("%d/%m/%Y")})'
     )
 
     return render(request, 'budget/expense_form.html', {

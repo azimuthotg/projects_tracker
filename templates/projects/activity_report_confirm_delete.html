@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}ยืนยันการลบรายงาน{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-8">
+    <div class="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-gray-800">ยืนยันการลบรายงาน</h2>
+        </div>
+
+        <p class="text-gray-600 mb-2">คุณต้องการลบรายงานนี้ใช่หรือไม่?</p>
+        <div class="bg-gray-50 rounded-lg p-3 mb-6 text-sm space-y-1">
+            <p><span class="text-gray-500">กิจกรรม:</span> <span class="font-medium">{{ activity.name }}</span></p>
+            <p><span class="text-gray-500">ครั้งที่:</span> <span class="font-medium">{{ report.round_number }}</span></p>
+            <p><span class="text-gray-500">หัวข้อ:</span> <span class="font-medium">{{ report.title }}</span></p>
+            <p><span class="text-gray-500">วันที่:</span> <span class="font-medium">{{ report.date|date:"d/m/Y" }}</span></p>
+        </div>
+
+        {% if report.expenses.exists %}
+        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            <strong>หมายเหตุ:</strong> มีรายการเบิกจ่าย {{ report.expenses.count }} รายการที่ผูกกับรายงานนี้ หากลบจะยกเลิกการผูก (รายการเบิกจ่ายยังคงอยู่)
+        </div>
+        {% endif %}
+
+        <div class="flex gap-3">
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">
+                    ยืนยันลบ
+                </button>
+            </form>
+            <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}"
+               class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">ยกเลิก</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

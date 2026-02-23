@@ -34,14 +34,30 @@ def _apply_tailwind(form):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ['activity', 'description', 'amount', 'expense_date', 'receipt_number', 'receipt_file']
+        fields = ['activity', 'description', 'amount', 'expense_date', 'receipt_number', 'receipt_file', 'activity_report']
         widgets = {
             'expense_date': forms.DateInput(attrs={'type': 'date'}),
             'receipt_file': forms.ClearableFileInput(attrs={'accept': 'application/pdf,image/jpeg,image/png'}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, activity_pk=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from apps.projects.models import ActivityReport
+
+        # Determine which activity to filter reports by
+        act_pk = activity_pk
+        if not act_pk and self.instance.pk:
+            act_pk = self.instance.activity_id
+
+        if act_pk:
+            self.fields['activity_report'].queryset = ActivityReport.objects.filter(activity_id=act_pk)
+            self.fields['activity_report'].label_from_instance = (
+                lambda r: f'ครั้งที่ {r.round_number}: {r.title} ({r.date.strftime("%d/%m/%Y")})'
+            )
+        else:
+            self.fields['activity_report'].queryset = ActivityReport.objects.none()
+
+        self.fields['activity_report'].required = False
         _apply_tailwind(self)
 
     def clean_receipt_file(self):

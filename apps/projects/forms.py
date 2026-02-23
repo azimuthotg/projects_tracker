@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 
-from .models import Activity, Project, ProjectBudgetSource
+from .models import Activity, ActivityReport, Project, ProjectBudgetSource
 
 User = get_user_model()
 
@@ -244,3 +244,40 @@ class ActivityForm(forms.ModelForm):
                         f'(เหลือจัดสรรได้ {available:,.2f} บาท)'
                     )
         return cleaned_data
+
+
+ALLOWED_REPORT_DOC_TYPES = {
+    'application/pdf': b'%PDF',
+    'image/jpeg': b'\xff\xd8\xff',
+    'image/png': b'\x89PNG',
+}
+
+
+class ActivityReportForm(forms.ModelForm):
+    class Meta:
+        model = ActivityReport
+        fields = ['title', 'date', 'description', 'document']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 4}),
+            'document': forms.ClearableFileInput(attrs={'accept': 'application/pdf,image/jpeg,image/png'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_tailwind(self)
+
+    def clean_document(self):
+        f = self.cleaned_data.get('document')
+        if not f or not hasattr(f, 'content_type'):
+            return f
+        if f.content_type not in ALLOWED_REPORT_DOC_TYPES:
+            raise ValidationError('อนุญาตเฉพาะไฟล์ PDF, JPG หรือ PNG เท่านั้น')
+        if f.size > 20 * 1024 * 1024:
+            raise ValidationError('ขนาดไฟล์ต้องไม่เกิน 20 MB')
+        f.seek(0)
+        header = f.read(4)
+        f.seek(0)
+        if not header.startswith(ALLOWED_REPORT_DOC_TYPES[f.content_type]):
+            raise ValidationError('ไฟล์ไม่ตรงกับประเภทที่ระบุ')
+        return f

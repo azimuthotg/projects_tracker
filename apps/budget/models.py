@@ -25,6 +25,14 @@ class Expense(models.Model):
         blank=True,
         null=True,
     )
+    activity_report = models.ForeignKey(
+        'projects.ActivityReport',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses',
+        verbose_name='กิจกรรมย่อย (ครั้งที่)',
+    )
     status = models.CharField('สถานะ', max_length=10, choices=STATUS_CHOICES, default='pending')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

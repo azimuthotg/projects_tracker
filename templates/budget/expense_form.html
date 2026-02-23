@@ -23,7 +23,13 @@
     <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {% csrf_token %}
         {% for field in form %}
+        {% if field.html_name == 'activity_report' %}
+            {% if field.field.queryset.exists %}
+            {% include "components/_form_field.html" %}
+            {% endif %}
+        {% else %}
         {% include "components/_form_field.html" %}
+        {% endif %}
         {% endfor %}
 
         {% if expense.receipt_file %}

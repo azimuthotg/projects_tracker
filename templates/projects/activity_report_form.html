@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-sm text-gray-500">
+    <a href="{% url 'projects:project_list' %}" class="hover:underline">โครงการ</a>
+    <span class="mx-1">/</span>
+    <a href="{% url 'projects:project_detail' pk=project.pk %}" class="hover:underline">{{ project.project_code }}</a>
+    <span class="mx-1">/</span>
+    <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="hover:underline">กิจกรรมที่ {{ activity.activity_number }}</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-800">{{ title }}</span>
+</nav>
+
+<div class="max-w-2xl">
+    <h2 class="text-2xl font-bold text-gray-800 mb-1">{{ title }}</h2>
+    <p class="text-gray-500 mb-6">กิจกรรม: {{ activity.name }}</p>
+
+    {% if form.non_field_errors %}
+    <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+        {% csrf_token %}
+
+        {% with field=form.title %}{% include "components/_form_field.html" %}{% endwith %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% with field=form.date %}{% include "components/_form_field.html" %}{% endwith %}
+        </div>
+
+        {% with field=form.description %}{% include "components/_form_field.html" %}{% endwith %}
+        {% with field=form.document %}{% include "components/_form_field.html" %}{% endwith %}
+
+        {% if report.document %}
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <span class="text-gray-600">ไฟล์ปัจจุบัน: </span>
+            <a href="{{ report.document.url }}" target="_blank" class="text-blue-700 hover:underline font-medium">
+                {{ report.document.name|cut:"activities/reports/" }}
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="flex gap-3 pt-4 border-t border-gray-100">
+            <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm font-medium">
+                {% if report %}บันทึกการแก้ไข{% else %}บันทึกรายงาน{% endif %}
+            </button>
+            <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}"
+               class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

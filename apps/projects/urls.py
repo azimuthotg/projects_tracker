@@ -16,4 +16,7 @@ urlpatterns = [
     path('<int:project_pk>/activities/create/', views.activity_create, name='activity_create'),
     path('<int:project_pk>/activities/<int:pk>/', views.activity_detail, name='activity_detail'),
     path('<int:project_pk>/activities/<int:pk>/edit/', views.activity_edit, name='activity_edit'),
+    path('activities/<int:activity_pk>/reports/create/', views.activity_report_create, name='activity_report_create'),
+    path('activities/reports/<int:pk>/edit/', views.activity_report_edit, name='activity_report_edit'),
+    path('activities/reports/<int:pk>/delete/', views.activity_report_delete, name='activity_report_delete'),
 ]

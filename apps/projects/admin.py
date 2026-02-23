@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Activity, FiscalYear, Project, ProjectBudgetSource, ProjectDeleteRequest
+from .models import Activity, ActivityReport, FiscalYear, Project, ProjectBudgetSource, ProjectDeleteRequest
 
 
 @admin.register(FiscalYear)
@@ -37,6 +37,14 @@ class ActivityAdmin(admin.ModelAdmin):
     list_filter = ['status', 'project__fiscal_year']
     search_fields = ['name', 'project__name', 'project__project_code']
     filter_horizontal = ['responsible_persons', 'notify_persons']
+
+
+@admin.register(ActivityReport)
+class ActivityReportAdmin(admin.ModelAdmin):
+    list_display = ['activity', 'round_number', 'title', 'date', 'created_by']
+    list_filter = ['activity__project__fiscal_year']
+    search_fields = ['title', 'activity__name', 'activity__project__name']
+    raw_id_fields = ['created_by']
 
 
 @admin.register(ProjectDeleteRequest)

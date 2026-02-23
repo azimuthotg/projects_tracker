@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -9,8 +9,8 @@ from django.utils import timezone
 from apps.accounts.decorators import role_required
 from apps.budget.models import Expense
 
-from .forms import ActivityForm, ProjectBudgetSourceFormSet, ProjectForm
-from .models import Activity, FiscalYear, Project, ProjectDeleteRequest
+from .forms import ActivityForm, ActivityReportForm, ProjectBudgetSourceFormSet, ProjectForm
+from .models import Activity, ActivityReport, FiscalYear, Project, ProjectDeleteRequest
 from .utils import get_projects_for_user
 
 
@@ -159,13 +159,15 @@ def activity_detail(request, project_pk, pk):
 
     activity = get_object_or_404(Activity, pk=pk, project=project)
     expenses = Expense.objects.filter(activity=activity).select_related(
-        'created_by', 'approved_by'
+        'created_by', 'approved_by', 'activity_report'
     )
+    reports = ActivityReport.objects.filter(activity=activity).select_related('created_by')
 
     context = {
         'project': project,
         'activity': activity,
         'expenses': expenses,
+        'reports': reports,
     }
     return render(request, 'projects/activity_detail.html', context)
 
@@ -303,6 +305,87 @@ def delete_request_list(request):
     return render(request, 'projects/delete_request_list.html', {
         'pending': pending,
         'history': history,
+    })
+
+
+@login_required
+def activity_report_create(request, activity_pk):
+    activity = get_object_or_404(Activity, pk=activity_pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ActivityReportForm(request.POST, request.FILES)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.activity = activity
+            report.created_by = request.user
+            last = ActivityReport.objects.filter(activity=activity).aggregate(
+                max_round=models.Max('round_number')
+            )['max_round'] or 0
+            report.round_number = last + 1
+            report.save()
+            messages.success(request, f'บันทึกรายงานครั้งที่ {report.round_number} สำเร็จ')
+            return redirect('projects:activity_detail',
+                            project_pk=activity.project_id, pk=activity.pk)
+    else:
+        form = ActivityReportForm()
+
+    return render(request, 'projects/activity_report_form.html', {
+        'form': form,
+        'activity': activity,
+        'project': activity.project,
+        'title': 'บันทึกรายงานกิจกรรมย่อย',
+    })
+
+
+@login_required
+def activity_report_edit(request, pk):
+    report = get_object_or_404(ActivityReport, pk=pk)
+    activity = report.activity
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ActivityReportForm(request.POST, request.FILES, instance=report)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'แก้ไขรายงานครั้งที่ {report.round_number} สำเร็จ')
+            return redirect('projects:activity_detail',
+                            project_pk=activity.project_id, pk=activity.pk)
+    else:
+        form = ActivityReportForm(instance=report)
+
+    return render(request, 'projects/activity_report_form.html', {
+        'form': form,
+        'report': report,
+        'activity': activity,
+        'project': activity.project,
+        'title': f'แก้ไขรายงานครั้งที่ {report.round_number}',
+    })
+
+
+@login_required
+def activity_report_delete(request, pk):
+    report = get_object_or_404(ActivityReport, pk=pk)
+    activity = report.activity
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        round_number = report.round_number
+        report.delete()
+        messages.success(request, f'ลบรายงานครั้งที่ {round_number} สำเร็จ')
+        return redirect('projects:activity_detail',
+                        project_pk=activity.project_id, pk=activity.pk)
+
+    return render(request, 'projects/activity_report_confirm_delete.html', {
+        'report': report,
+        'activity': activity,
+        'project': activity.project,
     })
 
 

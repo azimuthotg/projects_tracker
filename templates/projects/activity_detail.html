@@ -106,6 +106,85 @@
     </div>
 </div>
 
+<!-- Activity Reports -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-800">
+            รายงานกิจกรรมย่อย
+            <span class="ml-2 text-sm font-normal text-gray-400">({{ reports.count }} ครั้ง)</span>
+        </h3>
+        <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
+           class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            บันทึกรายงาน
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase w-20">ครั้งที่</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">หัวข้อ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่จัด</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สรุปผล</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">เอกสาร</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for report in reports %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
+                            {{ report.round_number }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ report.title }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ report.date|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                        {% if report.description %}
+                        <span title="{{ report.description }}">{{ report.description|truncatechars:60 }}</span>
+                        {% else %}
+                        <span class="text-gray-300">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if report.document %}
+                        <a href="{{ report.document.url }}" target="_blank"
+                           class="inline-flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            ดูเอกสาร
+                        </a>
+                        {% else %}
+                        <span class="text-xs text-gray-300">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-3">
+                            <a href="{% url 'projects:activity_report_edit' pk=report.pk %}"
+                               class="text-sm text-yellow-600 hover:text-yellow-800 transition-colors">แก้ไข</a>
+                            <a href="{% url 'projects:activity_report_delete' pk=report.pk %}"
+                               class="text-sm text-red-500 hover:text-red-700 transition-colors">ลบ</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-10 text-center">
+                        <p class="text-sm text-gray-400">ยังไม่มีรายงานกิจกรรมย่อย</p>
+                        <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
+                           class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            บันทึกรายงานครั้งแรก
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Expenses Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">

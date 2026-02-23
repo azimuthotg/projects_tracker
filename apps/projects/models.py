@@ -267,3 +267,41 @@ class Activity(models.Model):
         if self.allocated_budget > 0:
             return float(self.total_spent / self.allocated_budget * 100)
         return 0
+
+
+class ActivityReport(models.Model):
+    """รายงานกิจกรรมย่อย (ครั้งที่ 1, 2, 3...) ภายใต้กิจกรรม"""
+
+    activity = models.ForeignKey(
+        Activity,
+        on_delete=models.CASCADE,
+        related_name='reports',
+        verbose_name='กิจกรรม',
+    )
+    round_number = models.PositiveIntegerField('ครั้งที่')
+    title = models.CharField('หัวข้อ/ชื่อครั้งนี้', max_length=200)
+    date = models.DateField('วันที่จัดกิจกรรม')
+    description = models.TextField('สรุปผลการจัด', blank=True)
+    document = models.FileField(
+        'เอกสารรายงาน (PDF/รูปภาพ)',
+        upload_to='activities/reports/',
+        blank=True,
+        null=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='created_activity_reports',
+        verbose_name='บันทึกโดย',
+    )
+    created_at = models.DateTimeField('สร้างเมื่อ', auto_now_add=True)
+    updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
+
+    class Meta:
+        verbose_name = 'รายงานกิจกรรมย่อย'
+        verbose_name_plural = 'รายงานกิจกรรมย่อย'
+        unique_together = ['activity', 'round_number']
+        ordering = ['activity', 'round_number']
+
+    def __str__(self):
+        return f'{self.activity} — ครั้งที่ {self.round_number}: {self.title}'

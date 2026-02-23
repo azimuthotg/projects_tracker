@@ -19,6 +19,12 @@ class Expense(models.Model):
     amount = models.DecimalField('จำนวนเงิน', max_digits=12, decimal_places=2)
     expense_date = models.DateField('วันที่เบิกจ่าย')
     receipt_number = models.CharField('เลขที่ใบเสร็จ', max_length=100, blank=True)
+    receipt_file = models.FileField(
+        'ไฟล์หลักฐาน (PDF/รูปภาพ)',
+        upload_to='expenses/receipts/',
+        blank=True,
+        null=True,
+    )
     status = models.CharField('สถานะ', max_length=10, choices=STATUS_CHOICES, default='pending')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

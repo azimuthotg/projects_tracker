@@ -20,11 +20,20 @@
     </div>
     {% endif %}
 
-    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {% csrf_token %}
         {% for field in form %}
         {% include "components/_form_field.html" %}
         {% endfor %}
+
+        {% if expense.receipt_file %}
+        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <span class="text-gray-600">ไฟล์ปัจจุบัน: </span>
+            <a href="{{ expense.receipt_file.url }}" target="_blank" class="text-blue-700 hover:underline font-medium">
+                {{ expense.receipt_file.name|cut:"expenses/receipts/" }}
+            </a>
+        </div>
+        {% endif %}
 
         <div class="flex gap-3 mt-6">
             <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">

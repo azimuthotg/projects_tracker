@@ -40,7 +40,7 @@ def expense_list(request):
 @login_required
 def expense_create(request, activity_pk=None):
     if request.method == 'POST':
-        form = ExpenseForm(request.POST)
+        form = ExpenseForm(request.POST, request.FILES)
         if form.is_valid():
             expense = form.save(commit=False)
             expense.created_by = request.user
@@ -84,7 +84,7 @@ def expense_edit(request, pk):
         raise PermissionDenied
 
     if request.method == 'POST':
-        form = ExpenseForm(request.POST, instance=expense)
+        form = ExpenseForm(request.POST, request.FILES, instance=expense)
         if form.is_valid():
             form.save()
             messages.success(request, 'แก้ไขรายการเบิกจ่ายสำเร็จ')

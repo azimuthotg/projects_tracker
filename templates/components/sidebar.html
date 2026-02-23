@@ -37,12 +37,19 @@
 
         {% if user.profile.role in "head,admin" %}
         <a href="{% url 'budget:approval_list' %}"
-           class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors
+           class="flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-colors
                   {% if request.resolver_match.url_name in 'approval_list,expense_approve' %}nav-active bg-white/15{% else %}hover:bg-blue-800/70 text-blue-100{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.resolver_match.url_name in 'approval_list,expense_approve' %}text-white{% else %}text-blue-300{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            อนุมัติรายการ
+            <span class="flex items-center">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.resolver_match.url_name in 'approval_list,expense_approve' %}text-white{% else %}text-blue-300{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                อนุมัติรายการ
+            </span>
+            {% if pending_expenses_count %}
+            <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold">
+                {{ pending_expenses_count }}
+            </span>
+            {% endif %}
         </a>
         {% endif %}
 

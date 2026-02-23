@@ -1,8 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
 
-from .models import Project, Activity
+from .models import Activity, Project, ProjectBudgetSource
 
 User = get_user_model()
 
@@ -63,12 +64,37 @@ def _get_user_queryset(user):
         ).select_related('profile')
 
 
+def _apply_tailwind_formset(formset):
+    """Apply tailwind styles to all forms in a formset."""
+    for form in formset.forms:
+        for name, field in form.fields.items():
+            if name == 'DELETE':
+                continue
+            widget = field.widget
+            if isinstance(widget, (forms.Select,)):
+                widget.attrs.setdefault('class', TAILWIND_SELECT)
+            elif isinstance(widget, forms.CheckboxInput):
+                pass
+            else:
+                widget.attrs.setdefault('class', TAILWIND_INPUT)
+
+
+ProjectBudgetSourceFormSet = inlineformset_factory(
+    Project,
+    ProjectBudgetSource,
+    fields=['source_type', 'erp_code', 'amount'],
+    extra=1,
+    can_delete=True,
+    min_num=0,
+)
+
+
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = [
             'fiscal_year', 'department', 'project_code', 'name',
-            'description', 'total_budget', 'start_date', 'end_date',
+            'description', 'start_date', 'end_date',
             'status', 'document', 'responsible_persons', 'notify_persons',
         ]
         widgets = {
@@ -127,7 +153,9 @@ class ActivityForm(forms.ModelForm):
     class Meta:
         model = Activity
         fields = [
-            'name', 'description', 'allocated_budget',
+            'name', 'description',
+            'allocated_budget',
+            'budget_government', 'budget_accumulated', 'budget_revenue',
             'start_date', 'end_date', 'status',
             'responsible_persons', 'notify_persons',
         ]
@@ -142,6 +170,20 @@ class ActivityForm(forms.ModelForm):
     def __init__(self, *args, project=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.project = project
+        self.project_sources = list(project.budget_sources.all()) if project else []
+
+        if self.project_sources:
+            # Budget source mode — ซ่อน allocated_budget, แสดงเฉพาะ source ที่มีในโครงการ
+            del self.fields['allocated_budget']
+            active_source_types = {s.source_type for s in self.project_sources}
+            for st in ['government', 'accumulated', 'revenue']:
+                if st not in active_source_types:
+                    del self.fields[f'budget_{st}']
+        else:
+            # Legacy mode — แสดง allocated_budget, ซ่อน source fields
+            for st in ['government', 'accumulated', 'revenue']:
+                del self.fields[f'budget_{st}']
+
         if user:
             qs = _get_user_queryset(user)
             self.fields['responsible_persons'].queryset = qs
@@ -157,10 +199,10 @@ class ActivityForm(forms.ModelForm):
         return persons
 
     def clean_allocated_budget(self):
+        """Legacy mode validation (used when project has no budget sources)."""
         amount = self.cleaned_data['allocated_budget']
         if amount <= 0:
             raise ValidationError('งบประมาณต้องมากกว่า 0')
-
         if self.project:
             other_allocated = self.project.total_allocated
             if self.instance.pk:
@@ -179,4 +221,23 @@ class ActivityForm(forms.ModelForm):
         end_date = cleaned_data.get('end_date')
         if start_date and end_date and start_date > end_date:
             raise ValidationError('วันที่เริ่มต้นต้องก่อนวันที่สิ้นสุด')
+
+        if self.project_sources:
+            # Budget source mode — validate total
+            total = sum(
+                cleaned_data.get(f'budget_{s.source_type}') or 0
+                for s in self.project_sources
+            )
+            if total <= 0:
+                raise ValidationError('ต้องระบุงบประมาณอย่างน้อย 1 หมวดเงิน')
+            if self.project:
+                other_allocated = self.project.total_allocated
+                if self.instance.pk:
+                    other_allocated -= self.instance.allocated_budget
+                if other_allocated + total > self.project.total_budget:
+                    available = self.project.total_budget - other_allocated
+                    raise ValidationError(
+                        f'งบรวมเกินกว่าที่โครงการกำหนด '
+                        f'(เหลือจัดสรรได้ {available:,.2f} บาท)'
+                    )
         return cleaned_data

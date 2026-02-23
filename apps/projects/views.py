@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.accounts.decorators import role_required
 from apps.budget.models import Expense
 
-from .forms import ActivityForm, ProjectForm
+from .forms import ActivityForm, ProjectBudgetSourceFormSet, ProjectForm
 from .models import Activity, FiscalYear, Project, ProjectDeleteRequest
 from .utils import get_projects_for_user
 
@@ -71,21 +71,28 @@ def project_create(request):
 
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, user=request.user)
-        if form.is_valid():
+        budget_formset = ProjectBudgetSourceFormSet(request.POST)
+        if form.is_valid() and budget_formset.is_valid():
             project = form.save(commit=False)
             project.created_by = request.user
-            # planner/admin เลือกแผนกผ่าน form, roles อื่นใช้แผนกของตนเอง
+            project.total_budget = 0  # will be updated by signal after budget sources saved
             if 'department' not in form.fields and profile and profile.department:
                 project.department = profile.department
             project.save()
             form.save_m2m()
+            budget_formset.instance = project
+            budget_formset.save()
             messages.success(request, f'สร้างโครงการ "{project.name}" สำเร็จ')
             return redirect('projects:project_detail', pk=project.pk)
     else:
         form = ProjectForm(user=request.user)
+        budget_formset = ProjectBudgetSourceFormSet()
 
+    from .forms import _apply_tailwind_formset
+    _apply_tailwind_formset(budget_formset)
     return render(request, 'projects/project_form.html', {
         'form': form,
+        'budget_formset': budget_formset,
         'title': 'สร้างโครงการใหม่',
         'user_profile': profile,
     })
@@ -100,15 +107,21 @@ def project_edit(request, pk):
 
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project, user=request.user)
-        if form.is_valid():
+        budget_formset = ProjectBudgetSourceFormSet(request.POST, instance=project)
+        if form.is_valid() and budget_formset.is_valid():
             form.save()
+            budget_formset.save()
             messages.success(request, f'แก้ไขโครงการ "{project.name}" สำเร็จ')
             return redirect('projects:project_detail', pk=project.pk)
     else:
         form = ProjectForm(instance=project, user=request.user)
+        budget_formset = ProjectBudgetSourceFormSet(instance=project)
 
+    from .forms import _apply_tailwind_formset
+    _apply_tailwind_formset(budget_formset)
     return render(request, 'projects/project_form.html', {
         'form': form,
+        'budget_formset': budget_formset,
         'project': project,
         'title': f'แก้ไขโครงการ: {project.name}',
         'user_profile': getattr(request.user, 'profile', None),
@@ -184,6 +197,7 @@ def activity_create(request, project_pk):
     return render(request, 'projects/activity_form.html', {
         'form': form,
         'project': project,
+        'project_sources': project.budget_source_summary(),
         'title': 'เพิ่มกิจกรรมใหม่',
     })
 
@@ -210,6 +224,7 @@ def activity_edit(request, project_pk, pk):
         'form': form,
         'project': project,
         'activity': activity,
+        'project_sources': project.budget_source_summary(exclude_activity_pk=activity.pk),
         'title': f'แก้ไขกิจกรรม: {activity.name}',
     })
 

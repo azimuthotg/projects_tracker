@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Activity, FiscalYear, Project, ProjectDeleteRequest
+from .models import Activity, FiscalYear, Project, ProjectBudgetSource, ProjectDeleteRequest
 
 
 @admin.register(FiscalYear)
@@ -9,10 +9,16 @@ class FiscalYearAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
 
 
+class ProjectBudgetSourceInline(admin.TabularInline):
+    model = ProjectBudgetSource
+    extra = 1
+    fields = ['source_type', 'erp_code', 'amount']
+
+
 class ActivityInline(admin.TabularInline):
     model = Activity
     extra = 0
-    fields = ['activity_number', 'name', 'allocated_budget', 'status']
+    fields = ['activity_number', 'name', 'allocated_budget', 'budget_government', 'budget_accumulated', 'budget_revenue', 'status']
 
 
 @admin.register(Project)
@@ -22,7 +28,7 @@ class ProjectAdmin(admin.ModelAdmin):
     search_fields = ['project_code', 'name']
     raw_id_fields = ['created_by']
     filter_horizontal = ['responsible_persons', 'notify_persons']
-    inlines = [ActivityInline]
+    inlines = [ProjectBudgetSourceInline, ActivityInline]
 
 
 @admin.register(Activity)

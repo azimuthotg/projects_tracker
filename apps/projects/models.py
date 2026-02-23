@@ -59,6 +59,13 @@ class FiscalYear(models.Model):
         return f'ปีงบประมาณ {self.year}'
 
 
+SOURCE_CHOICES = [
+    ('government', 'เงินแผ่นดิน'),
+    ('accumulated', 'เงินสะสม'),
+    ('revenue', 'เงินรายได้'),
+]
+
+
 class Project(models.Model):
     STATUS_CHOICES = [
         ('draft', 'ร่าง'),
@@ -117,6 +124,25 @@ class Project(models.Model):
     def __str__(self):
         return f'{self.project_code} - {self.name}'
 
+    def budget_source_summary(self, exclude_activity_pk=None):
+        """Returns list of dicts with per-source budget info for activity form display."""
+        result = []
+        for source in self.budget_sources.all():
+            field = f'budget_{source.source_type}'
+            qs = self.activities.all()
+            if exclude_activity_pk:
+                qs = qs.exclude(pk=exclude_activity_pk)
+            allocated = qs.aggregate(total=Sum(field))['total'] or 0
+            result.append({
+                'source_type': source.source_type,
+                'label': source.get_source_type_display(),
+                'erp_code': source.erp_code,
+                'total': source.amount,
+                'allocated': allocated,
+                'remaining': source.amount - allocated,
+            })
+        return result
+
     @property
     def total_allocated(self):
         return self.activities.aggregate(
@@ -142,6 +168,31 @@ class Project(models.Model):
         return 0
 
 
+class ProjectBudgetSource(models.Model):
+    """แหล่งเงินงบประมาณของโครงการ (แผ่นดิน / สะสม / รายได้)"""
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='budget_sources',
+        verbose_name='โครงการ',
+    )
+    source_type = models.CharField('หมวดเงิน', max_length=20, choices=SOURCE_CHOICES)
+    erp_code = models.CharField('รหัสโครงการ ERP', max_length=50, blank=True)
+    amount = models.DecimalField('งบประมาณ', max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = ['project', 'source_type']
+        verbose_name = 'แหล่งงบประมาณ'
+        verbose_name_plural = 'แหล่งงบประมาณ'
+        ordering = ['source_type']
+
+    def __str__(self):
+        return f'{self.get_source_type_display()}: {self.amount:,.2f}'
+
+    def get_source_type_display(self):
+        return dict(SOURCE_CHOICES).get(self.source_type, self.source_type)
+
+
 class Activity(models.Model):
     STATUS_CHOICES = [
         ('pending', 'รอดำเนินการ'),
@@ -159,7 +210,10 @@ class Activity(models.Model):
     activity_number = models.PositiveIntegerField('ลำดับกิจกรรม')
     name = models.CharField('ชื่อกิจกรรม', max_length=300)
     description = models.TextField('รายละเอียด', blank=True)
-    allocated_budget = models.DecimalField('งบประมาณที่จัดสรร', max_digits=12, decimal_places=2)
+    allocated_budget = models.DecimalField('งบประมาณที่จัดสรร (รวม)', max_digits=12, decimal_places=2, default=0)
+    budget_government = models.DecimalField('เงินแผ่นดิน', max_digits=12, decimal_places=2, default=0)
+    budget_accumulated = models.DecimalField('เงินสะสม', max_digits=12, decimal_places=2, default=0)
+    budget_revenue = models.DecimalField('เงินรายได้', max_digits=12, decimal_places=2, default=0)
     start_date = models.DateField('วันที่เริ่ม')
     end_date = models.DateField('วันที่สิ้นสุด')
     status = models.CharField('สถานะ', max_length=12, choices=STATUS_CHOICES, default='pending')
@@ -184,6 +238,12 @@ class Activity(models.Model):
 
     def __str__(self):
         return f'{self.project.project_code}-{self.activity_number}: {self.name}'
+
+    def save(self, *args, **kwargs):
+        total = self.budget_government + self.budget_accumulated + self.budget_revenue
+        if total > 0:
+            self.allocated_budget = total
+        super().save(*args, **kwargs)
 
     @property
     def total_spent(self):

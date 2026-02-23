@@ -56,6 +56,121 @@
         {% endif %}
         {% endfor %}
 
+        <!-- งบประมาณแยกตามหมวดเงิน -->
+        <div class="mt-6 pt-4 border-t border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">งบประมาณแยกตามหมวดเงิน</h3>
+            {{ budget_formset.management_form }}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-gray-600 font-medium">หมวดเงิน</th>
+                            <th class="px-3 py-2 text-left text-gray-600 font-medium">รหัสโครงการ ERP</th>
+                            <th class="px-3 py-2 text-right text-gray-600 font-medium">งบประมาณ (บาท)</th>
+                            <th class="px-3 py-2 text-center text-gray-600 font-medium w-12">ลบ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-formset-body">
+                        {% for fs_form in budget_formset %}
+                        <tr class="border-t border-gray-100 budget-row">
+                            <td class="px-3 py-2">
+                                {{ fs_form.source_type }}
+                                {{ fs_form.id }}
+                                {% if fs_form.source_type.errors %}<p class="text-xs text-red-500">{{ fs_form.source_type.errors|join:", " }}</p>{% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ fs_form.erp_code }}
+                                {% if fs_form.erp_code.errors %}<p class="text-xs text-red-500">{{ fs_form.erp_code.errors|join:", " }}</p>{% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="number" name="{{ fs_form.amount.html_name }}" value="{{ fs_form.amount.value|default_if_none:'' }}" step="0.01" min="0" class="budget-amount-input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-blue-500 focus:border-blue-500" {% if fs_form.amount.field.required %}required{% endif %}>
+                                {% if fs_form.amount.errors %}<p class="text-xs text-red-500">{{ fs_form.amount.errors|join:", " }}</p>{% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                {% if fs_form.instance.pk %}
+                                <label class="cursor-pointer text-red-400 hover:text-red-600">
+                                    {{ fs_form.DELETE }}
+                                    <span class="text-xs">ลบ</span>
+                                </label>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-50 border-t border-gray-200">
+                            <td colspan="2" class="px-3 py-2 text-right text-sm font-semibold text-gray-700">งบประมาณรวม</td>
+                            <td class="px-3 py-2 text-right text-sm font-bold text-blue-900" id="budget-total">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <button type="button" id="add-budget-row" class="mt-2 text-sm text-blue-700 hover:text-blue-900 flex items-center gap-1">
+                <span class="text-lg leading-none">+</span> เพิ่มหมวดเงิน
+            </button>
+            {% if budget_formset.non_form_errors %}
+            <p class="text-xs text-red-500 mt-1">{{ budget_formset.non_form_errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Empty form template สำหรับ JS clone -->
+        <template id="budget-row-template">
+            <tr class="border-t border-gray-100 budget-row">
+                <td class="px-3 py-2">
+                    <select name="{{ budget_formset.empty_form.source_type.html_name }}" class="{{ budget_formset.empty_form.source_type.field.widget.attrs.class|default:'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500' }}">
+                        <option value="">---------</option>
+                        {% for val, label in budget_formset.empty_form.source_type.field.choices %}{% if val %}<option value="{{ val }}">{{ label }}</option>{% endif %}{% endfor %}
+                    </select>
+                    <input type="hidden" name="{{ budget_formset.empty_form.id.html_name }}" value="">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="text" name="{{ budget_formset.empty_form.erp_code.html_name }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" name="{{ budget_formset.empty_form.amount.html_name }}" step="0.01" min="0" class="budget-amount-input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-blue-500 focus:border-blue-500">
+                </td>
+                <td class="px-3 py-2 text-center"></td>
+            </tr>
+        </template>
+
+        <script>
+        (function() {
+            const PREFIX = '{{ budget_formset.prefix }}';
+            let formCount = parseInt(document.getElementById('id_' + PREFIX + '-TOTAL_FORMS').value);
+
+            function updateTotal() {
+                let total = 0;
+                document.querySelectorAll('.budget-row').forEach(row => {
+                    const del = row.querySelector('[name$="-DELETE"]');
+                    if (del && del.checked) return;
+                    const amt = row.querySelector('.budget-amount-input');
+                    if (amt) total += parseFloat(amt.value) || 0;
+                });
+                document.getElementById('budget-total').textContent = total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('budget-amount-input') || (e.target.name && e.target.name.endsWith('-DELETE'))) {
+                    updateTotal();
+                }
+            });
+            document.addEventListener('change', function(e) {
+                if (e.target.name && e.target.name.endsWith('-DELETE')) updateTotal();
+            });
+
+            document.getElementById('add-budget-row').addEventListener('click', function() {
+                const template = document.getElementById('budget-row-template').innerHTML;
+                const newRow = template.replace(/__prefix__/g, formCount);
+                document.getElementById('budget-formset-body').insertAdjacentHTML('beforeend', newRow);
+                formCount++;
+                document.getElementById('id_' + PREFIX + '-TOTAL_FORMS').value = formCount;
+            });
+
+            updateTotal();
+        })();
+        </script>
+
         <div class="flex gap-3 mt-6">
             <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
                 {% if project %}แก้ไข{% else %}สร้าง{% endif %}โครงการ

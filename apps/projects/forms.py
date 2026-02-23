@@ -67,7 +67,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = [
-            'fiscal_year', 'project_code', 'name',
+            'fiscal_year', 'department', 'project_code', 'name',
             'description', 'total_budget', 'start_date', 'end_date',
             'status', 'document', 'responsible_persons', 'notify_persons',
         ]
@@ -83,6 +83,10 @@ class ProjectForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.request_user = user
         if user:
+            role = getattr(getattr(user, 'profile', None), 'role', 'staff')
+            # เฉพาะ planner/admin เท่านั้นที่เลือกแผนกได้
+            if role not in ('planner', 'admin'):
+                del self.fields['department']
             qs = _get_user_queryset(user)
             self.fields['responsible_persons'].queryset = qs
             self.fields['notify_persons'].queryset = qs

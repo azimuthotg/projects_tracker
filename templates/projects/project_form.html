@@ -27,7 +27,7 @@
     <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {% csrf_token %}
 
-        <!-- หน่วยงาน + แผนก (read-only) -->
+        <!-- หน่วยงาน + แผนก -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">หน่วยงาน</label>
@@ -35,14 +35,25 @@
                 <p class="text-xs text-gray-400 mt-1">ดึงจาก NPU AD อัตโนมัติ</p>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
-                <input type="text" value="{% if user_profile and user_profile.department %}{{ user_profile.department.name }}{% elif project and project.department %}{{ project.department.name }}{% else %}ยังไม่กำหนด (ติดต่อ admin){% endif %}" disabled class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600">
-                <p class="text-xs text-gray-400 mt-1">กำหนดโดยผู้ดูแลระบบ</p>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    แผนก{% if form.department %}<span class="text-red-500 ml-1">*</span>{% endif %}
+                </label>
+                {% if form.department %}
+                    {{ form.department }}
+                    {% if form.department.errors %}
+                    <p class="text-xs text-red-500 mt-1">{{ form.department.errors|join:", " }}</p>
+                    {% endif %}
+                {% else %}
+                    <input type="text" value="{% if user_profile and user_profile.department %}{{ user_profile.department.name }}{% elif project and project.department %}{{ project.department.name }}{% else %}ยังไม่กำหนด (ติดต่อ admin){% endif %}" disabled class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600">
+                    <p class="text-xs text-gray-400 mt-1">กำหนดโดยผู้ดูแลระบบ</p>
+                {% endif %}
             </div>
         </div>
 
         {% for field in form %}
+        {% if field.html_name != 'department' %}
         {% include "components/_form_field.html" %}
+        {% endif %}
         {% endfor %}
 
         <div class="flex gap-3 mt-6">

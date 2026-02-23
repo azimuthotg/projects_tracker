@@ -74,7 +74,8 @@ def project_create(request):
         if form.is_valid():
             project = form.save(commit=False)
             project.created_by = request.user
-            if profile and profile.department:
+            # planner/admin เลือกแผนกผ่าน form, roles อื่นใช้แผนกของตนเอง
+            if 'department' not in form.fields and profile and profile.department:
                 project.department = profile.department
             project.save()
             form.save_m2m()

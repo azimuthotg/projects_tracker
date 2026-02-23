@@ -141,6 +141,37 @@ def expense_link_report(request, pk):
                     pk=expense.activity_id)
 
 
+@login_required
+def expense_delete(request, pk):
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+
+    expense = get_object_or_404(Expense, pk=pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=expense.activity.project_id).exists():
+        raise PermissionDenied
+
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+
+    # pending: ผู้สร้างหรือ head/admin ลบได้
+    # approved/rejected: admin เท่านั้น
+    can_delete = False
+    if expense.status == 'pending':
+        can_delete = (expense.created_by == request.user) or role in ('head', 'admin')
+    else:
+        can_delete = role == 'admin'
+
+    if not can_delete:
+        raise PermissionDenied
+
+    project_pk = expense.activity.project_id
+    activity_pk = expense.activity_id
+    expense.delete()
+    messages.success(request, 'ลบรายการเบิกจ่ายสำเร็จ')
+    return redirect('projects:activity_detail', project_pk=project_pk, pk=activity_pk)
+
+
 @role_required(['head', 'admin'])
 def approval_list(request):
     expenses = get_expenses_for_user(request.user).filter(status='pending')

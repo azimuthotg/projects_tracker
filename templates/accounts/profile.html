@@ -142,71 +142,89 @@
                 </div>
                 <h3 class="text-sm font-semibold text-gray-700">การแจ้งเตือน LINE</h3>
             </div>
-            <div class="divide-y divide-gray-50">
+
+            <!-- LINE connection status (read-only) -->
+            <div class="px-5 py-3.5 flex justify-between items-center border-b border-gray-50">
+                <div>
+                    <p class="text-xs text-gray-400">LINE User ID</p>
+                    <p class="text-sm font-medium text-gray-800 mt-0.5">
+                        {% if profile.line_user_id %}
+                        <span class="font-mono text-xs bg-gray-50 px-2 py-0.5 rounded">{{ profile.line_user_id }}</span>
+                        {% else %}
+                        <span class="text-gray-400 text-xs">ยังไม่เชื่อมต่อ — ติดต่อผู้ดูแลระบบ</span>
+                        {% endif %}
+                    </p>
+                </div>
+                {% if profile.line_user_id %}
+                <span class="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    เชื่อมต่อแล้ว
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    ยังไม่เชื่อมต่อ
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Editable notification settings form -->
+            <form method="post" class="divide-y divide-gray-50">
+                {% csrf_token %}
+                <!-- notify_budget_alert toggle -->
                 <div class="px-5 py-3.5 flex justify-between items-center">
                     <div>
-                        <p class="text-xs text-gray-400">LINE User ID</p>
-                        <p class="text-sm font-medium text-gray-800 mt-0.5">
-                            {% if profile.line_user_id %}
-                            <span class="font-mono text-xs bg-gray-50 px-2 py-0.5 rounded">{{ profile.line_user_id }}</span>
-                            {% else %}
-                            <span class="text-gray-400 text-xs">ยังไม่เชื่อมต่อ</span>
-                            {% endif %}
-                        </p>
+                        <p class="text-xs font-medium text-gray-700">แจ้งเตือนงบประมาณ</p>
+                        <p class="text-xs text-gray-400 mt-0.5">รับการแจ้งเตือนเมื่อใช้งบเกินเกณฑ์</p>
                     </div>
-                    {% if profile.line_user_id %}
-                    <span class="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        เชื่อมต่อแล้ว
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        ยังไม่เชื่อมต่อ
-                    </span>
-                    {% endif %}
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="notify_budget_alert" id="id_notify_budget_alert"
+                               class="sr-only peer"
+                               {% if notif_form.notify_budget_alert.value %}checked{% endif %}>
+                        <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
                 </div>
 
+                <!-- notify_deadline toggle -->
                 <div class="px-5 py-3.5 flex justify-between items-center">
-                    <span class="text-xs text-gray-400">แจ้งเตือนงบประมาณ</span>
-                    {% if profile.notify_budget_alert %}
-                    <span class="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        เปิดใช้งาน
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        ปิด
-                    </span>
-                    {% endif %}
-                </div>
-
-                <div class="px-5 py-3.5 flex justify-between items-center">
-                    <span class="text-xs text-gray-400">แจ้งเตือนกำหนดส่ง</span>
-                    {% if profile.notify_deadline %}
-                    <span class="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        เปิดใช้งาน
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        ปิด
-                    </span>
-                    {% endif %}
-                </div>
-
-                <div class="px-5 py-3.5 flex justify-between items-center">
-                    <span class="text-xs text-gray-400">เกณฑ์แจ้งเตือนงบ</span>
-                    <div class="flex items-center gap-2">
-                        <div class="w-16 bg-gray-100 rounded-full h-1.5">
-                            <div class="bg-yellow-400 h-1.5 rounded-full" style="width: {{ profile.budget_threshold }}%"></div>
-                        </div>
-                        <span class="text-sm font-semibold text-gray-800">{{ profile.budget_threshold }}%</span>
+                    <div>
+                        <p class="text-xs font-medium text-gray-700">แจ้งเตือนกำหนดส่ง</p>
+                        <p class="text-xs text-gray-400 mt-0.5">รับการแจ้งเตือนเมื่อใกล้วันสิ้นสุด (7 วัน / 3 วัน)</p>
                     </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="notify_deadline" id="id_notify_deadline"
+                               class="sr-only peer"
+                               {% if notif_form.notify_deadline.value %}checked{% endif %}>
+                        <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
                 </div>
-            </div>
+
+                <!-- budget_threshold -->
+                <div class="px-5 py-3.5 flex justify-between items-center gap-4">
+                    <div class="min-w-0">
+                        <label for="id_budget_threshold" class="text-xs font-medium text-gray-700">เกณฑ์แจ้งเตือนงบ (%)</label>
+                        <p class="text-xs text-gray-400 mt-0.5">แจ้งเตือนเมื่อใช้งบถึง X% (50–100)</p>
+                    </div>
+                    <input type="number" name="budget_threshold" id="id_budget_threshold"
+                           min="50" max="100"
+                           value="{{ notif_form.budget_threshold.value|default:profile.budget_threshold }}"
+                           class="w-20 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-semibold">
+                </div>
+
+                {% if notif_form.errors %}
+                <div class="px-5 py-2 text-xs text-red-600">
+                    {% for field in notif_form %}{% for err in field.errors %}<p>{{ err }}</p>{% endfor %}{% endfor %}
+                    {% for err in notif_form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="px-5 py-3.5">
+                    <button type="submit"
+                            class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                        บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </form>
         </div>
 
         {% if profile.npu_citizen_id or profile.npu_staff_id or profile.last_npu_sync %}

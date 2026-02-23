@@ -115,6 +115,16 @@ class UserEditForm(forms.Form):
                              widget=forms.Select(attrs={'class': TAILWIND_SELECT}))
     is_active = forms.BooleanField(label='เปิดใช้งาน', required=False,
                                    widget=forms.CheckboxInput(attrs={'class': TAILWIND_CHECKBOX}))
+    line_user_id = forms.CharField(
+        label='LINE User ID',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': TAILWIND_INPUT,
+            'placeholder': 'Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        }),
+        help_text='LINE User ID ของผู้ใช้ (เริ่มต้นด้วย U...) ใช้สำหรับรับการแจ้งเตือน',
+    )
 
     def __init__(self, *args, user_instance=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -127,6 +137,7 @@ class UserEditForm(forms.Form):
             if hasattr(user_instance, 'profile'):
                 self.fields['department'].initial = user_instance.profile.department_id
                 self.fields['role'].initial = user_instance.profile.role
+                self.fields['line_user_id'].initial = user_instance.profile.line_user_id
 
     def save(self):
         data = self.cleaned_data
@@ -139,6 +150,7 @@ class UserEditForm(forms.Form):
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.department = data.get('department')
         profile.role = data['role']
+        profile.line_user_id = data.get('line_user_id', '')
         profile.save()
         return user
 
@@ -166,6 +178,43 @@ class DepartmentForm(forms.ModelForm):
             'code': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
             'name': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
         }
+
+
+class ProfileNotificationForm(forms.Form):
+    notify_budget_alert = forms.BooleanField(
+        label='แจ้งเตือนงบประมาณ',
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': TAILWIND_CHECKBOX}),
+        help_text='รับการแจ้งเตือนเมื่อใช้งบเกินเกณฑ์',
+    )
+    notify_deadline = forms.BooleanField(
+        label='แจ้งเตือนกำหนดส่ง',
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': TAILWIND_CHECKBOX}),
+        help_text='รับการแจ้งเตือนเมื่อใกล้วันสิ้นสุดกิจกรรม/โครงการ',
+    )
+    budget_threshold = forms.IntegerField(
+        label='เกณฑ์แจ้งเตือนงบ (%)',
+        min_value=50,
+        max_value=100,
+        widget=forms.NumberInput(attrs={'class': TAILWIND_INPUT}),
+        help_text='แจ้งเตือนเมื่อใช้งบถึง X% (50–100)',
+    )
+
+    def __init__(self, *args, profile=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if profile:
+            self.fields['notify_budget_alert'].initial = profile.notify_budget_alert
+            self.fields['notify_deadline'].initial = profile.notify_deadline
+            self.fields['budget_threshold'].initial = profile.budget_threshold
+
+    def save(self, profile):
+        data = self.cleaned_data
+        profile.notify_budget_alert = data['notify_budget_alert']
+        profile.notify_deadline = data['notify_deadline']
+        profile.budget_threshold = data['budget_threshold']
+        profile.save(update_fields=['notify_budget_alert', 'notify_deadline', 'budget_threshold'])
+        return profile
 
 
 class FiscalYearForm(forms.ModelForm):

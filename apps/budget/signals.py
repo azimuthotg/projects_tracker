@@ -6,22 +6,37 @@ from .models import Expense
 
 @receiver(post_save, sender=Expense)
 def check_budget_threshold(sender, instance, **kwargs):
-    """When expense is approved, check if budget usage exceeds threshold."""
-    if instance.status != 'approved':
+    """When expense is approved/rejected, send LINE notifications."""
+    if instance.status not in ('approved', 'rejected'):
         return
 
+    from apps.notifications.services import LINEService
+    service = LINEService()
+
     activity = instance.activity
-    usage_percent = activity.budget_usage_percent
 
-    # Send notification to each person in notify_persons
-    for person in activity.notify_persons.all():
-        if not hasattr(person, 'profile'):
-            continue
+    if instance.status == 'approved':
+        usage_percent = activity.budget_usage_percent
 
-        profile = person.profile
-        if not profile.notify_budget_alert:
-            continue
+        # Budget alert → notify_persons who have LINE + notify_budget_alert on
+        for person in activity.notify_persons.all():
+            if not hasattr(person, 'profile'):
+                continue
+            profile = person.profile
+            if not profile.line_user_id:
+                continue
+            if not profile.notify_budget_alert:
+                continue
+            if usage_percent >= profile.budget_threshold:
+                try:
+                    service.send_budget_alert(person, activity, usage_percent)
+                except Exception:
+                    pass
 
-        if usage_percent >= profile.budget_threshold:
-            # Will be implemented in notifications phase
+    # Expense notification → notify creator
+    creator = instance.created_by
+    if creator and hasattr(creator, 'profile') and creator.profile.line_user_id:
+        try:
+            service.send_expense_notification(creator, instance, instance.status)
+        except Exception:
             pass

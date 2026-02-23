@@ -14,6 +14,7 @@ from .forms import (
     FiscalYearForm,
     LoginForm,
     PasswordResetByAdminForm,
+    ProfileNotificationForm,
     UserCreateForm,
     UserEditForm,
 )
@@ -38,7 +39,15 @@ def my_profile(request):
     profile, _ = UserProfile.objects.get_or_create(
         user=request.user, defaults={'role': 'staff'}
     )
-    return render(request, 'accounts/profile.html', {'profile': profile})
+    if request.method == 'POST':
+        form = ProfileNotificationForm(request.POST, profile=profile)
+        if form.is_valid():
+            form.save(profile)
+            messages.success(request, 'บันทึกการตั้งค่าการแจ้งเตือนสำเร็จ')
+            return redirect('accounts:my_profile')
+    else:
+        form = ProfileNotificationForm(profile=profile)
+    return render(request, 'accounts/profile.html', {'profile': profile, 'notif_form': form})
 
 
 # ── Admin Management Dashboard ──────────────────────────────────────

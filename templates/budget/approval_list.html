@@ -18,6 +18,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้บันทึก</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">หลักฐาน</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">ดำเนินการ</th>
                 </tr>
             </thead>
@@ -34,6 +35,16 @@
                     <td class="px-6 py-4 text-sm text-right font-medium text-gray-800">{{ expense.amount|floatformat:2 }}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
                     <td class="px-6 py-4 text-center">
+                        {% if expense.receipt_file %}
+                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            ดูเอกสาร
+                        </a>
+                        {% else %}
+                        <span class="text-xs text-gray-300">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
                         <a href="{% url 'budget:expense_approve' pk=expense.pk %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             ตรวจสอบ
@@ -42,7 +53,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-6 py-16 text-center">
+                    <td colspan="7" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center">
                                 <svg class="w-8 h-8 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

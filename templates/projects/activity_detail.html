@@ -125,6 +125,7 @@
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">โดย</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">หลักฐาน</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
                 </tr>
             </thead>
@@ -146,6 +147,16 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
                     <td class="px-6 py-4 text-center">
+                        {% if expense.receipt_file %}
+                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            ดูเอกสาร
+                        </a>
+                        {% else %}
+                        <span class="text-xs text-gray-300">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
                         {% if expense.status == 'pending' and expense.created_by == user %}
                         <a href="{% url 'budget:expense_edit' pk=expense.pk %}" class="inline-flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900 transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -156,7 +167,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center">
+                    <td colspan="8" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
                                 <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>

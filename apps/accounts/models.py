@@ -19,7 +19,7 @@ class UserProfile(models.Model):
     ROLE_CHOICES = [
         ('staff', 'เจ้าหน้าที่'),
         ('planner', 'เจ้าหน้าที่แผน'),
-        ('head', 'หัวหน้างาน'),
+        ('head', 'หัวหน้าแผนก'),
         ('admin', 'ผู้ดูแลระบบ'),
     ]
 

@@ -154,6 +154,7 @@ class ActivityForm(forms.ModelForm):
         model = Activity
         fields = [
             'name', 'description',
+            'no_budget',
             'allocated_budget',
             'budget_government', 'budget_accumulated', 'budget_revenue',
             'start_date', 'end_date', 'status',
@@ -200,6 +201,8 @@ class ActivityForm(forms.ModelForm):
 
     def clean_allocated_budget(self):
         """Legacy mode validation (used when project has no budget sources)."""
+        if self.cleaned_data.get('no_budget'):
+            return 0
         amount = self.cleaned_data['allocated_budget']
         if amount <= 0:
             raise ValidationError('งบประมาณต้องมากกว่า 0')
@@ -222,7 +225,7 @@ class ActivityForm(forms.ModelForm):
         if start_date and end_date and start_date > end_date:
             raise ValidationError('วันที่เริ่มต้นต้องก่อนวันที่สิ้นสุด')
 
-        if self.project_sources:
+        if not cleaned_data.get('no_budget') and self.project_sources:
             # Budget source mode — validate total
             total = sum(
                 cleaned_data.get(f'budget_{s.source_type}') or 0

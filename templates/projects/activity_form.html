@@ -13,99 +13,148 @@
 
 <div class="max-w-2xl">
     <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ title }}</h2>
-    <p class="text-gray-500 mb-6">โครงการ: {{ project.name }} (งบเหลือจัดสรร: {{ project.total_budget|floatformat:2 }} - {{ project.total_allocated|floatformat:2 }} = {% widthratio project.total_budget 1 1 as tb %}{{ project.remaining_budget|floatformat:2 }} บาท)</p>
+    <p class="text-gray-500 mb-6">โครงการ: {{ project.name }}
+        {% if project.total_budget > 0 %}
+        (งบเหลือจัดสรร: <span class="font-medium text-green-700">{{ project.remaining_budget|floatformat:2 }} บาท</span>)
+        {% endif %}
+    </p>
 
     {% if form.non_field_errors %}
     <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-        {% for error in form.non_field_errors %}
-        <p>{{ error }}</p>
-        {% endfor %}
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
     </div>
     {% endif %}
 
-    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         {% csrf_token %}
 
-        {% for field in form %}
-        {% if field.html_name != 'budget_government' and field.html_name != 'budget_accumulated' and field.html_name != 'budget_revenue' %}
-        {% include "components/_form_field.html" %}
-        {% endif %}
-        {% endfor %}
+        <!-- ชื่อ + รายละเอียด -->
+        {% with field=form.name %}{% include "components/_form_field.html" %}{% endwith %}
+        {% with field=form.description %}{% include "components/_form_field.html" %}{% endwith %}
 
-        {% if project_sources %}
-        <!-- งบประมาณแยกตามหมวดเงิน -->
-        <div class="mt-4 pt-4 border-t border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">งบประมาณแยกตามหมวดเงิน</h3>
-            {% if form.non_field_errors %}
-            <div class="mb-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
-            </div>
-            {% endif %}
-            <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-gray-600 font-medium">หมวดเงิน</th>
-                        <th class="px-3 py-2 text-right text-gray-600 font-medium">งบโครงการ</th>
-                        <th class="px-3 py-2 text-right text-gray-600 font-medium">จัดสรรแล้ว</th>
-                        <th class="px-3 py-2 text-right text-gray-600 font-medium">คงเหลือ</th>
-                        <th class="px-3 py-2 text-right text-gray-600 font-medium">กิจกรรมนี้</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for src in project_sources %}
-                    <tr class="border-t border-gray-100">
-                        <td class="px-3 py-2 font-medium text-gray-700">{{ src.label }}{% if src.erp_code %} <span class="text-gray-400 font-normal">({{ src.erp_code }})</span>{% endif %}</td>
-                        <td class="px-3 py-2 text-right text-gray-600">{{ src.total|floatformat:2 }}</td>
-                        <td class="px-3 py-2 text-right text-gray-600">{{ src.allocated|floatformat:2 }}</td>
-                        <td class="px-3 py-2 text-right {% if src.remaining < 0 %}text-red-600 font-semibold{% else %}text-green-700{% endif %}">{{ src.remaining|floatformat:2 }}</td>
-                        <td class="px-3 py-2">
-                            {% if src.source_type == 'government' %}
-                                {{ form.budget_government }}
-                                {% if form.budget_government.errors %}<p class="text-xs text-red-500">{{ form.budget_government.errors|join:", " }}</p>{% endif %}
-                            {% elif src.source_type == 'accumulated' %}
-                                {{ form.budget_accumulated }}
-                                {% if form.budget_accumulated.errors %}<p class="text-xs text-red-500">{{ form.budget_accumulated.errors|join:", " }}</p>{% endif %}
-                            {% elif src.source_type == 'revenue' %}
-                                {{ form.budget_revenue }}
-                                {% if form.budget_revenue.errors %}<p class="text-xs text-red-500">{{ form.budget_revenue.errors|join:", " }}</p>{% endif %}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr class="bg-gray-50 border-t border-gray-200">
-                        <td colspan="3" class="px-3 py-2 text-right text-sm font-semibold text-gray-700">รวมกิจกรรมนี้</td>
-                        <td class="px-3 py-2 text-right text-sm font-semibold text-green-700">{{ project.total_budget|floatformat:2|add:" บาท" }}</td>
-                        <td class="px-3 py-2 text-right text-sm font-bold text-blue-900" id="activity-budget-total">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <script>
-            (function() {
-                function updateActivityTotal() {
-                    let total = 0;
-                    document.querySelectorAll('input[name^="budget_"]').forEach(function(inp) {
-                        total += parseFloat(inp.value) || 0;
-                    });
-                    const el = document.getElementById('activity-budget-total');
-                    if (el) el.textContent = total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
-                document.addEventListener('input', function(e) {
-                    if (e.target.name && e.target.name.startsWith('budget_')) updateActivityTotal();
-                });
-                updateActivityTotal();
-            })();
-            </script>
+        <!-- Toggle: ไม่ใช้งบประมาณ -->
+        <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <input type="checkbox" name="{{ form.no_budget.html_name }}" id="{{ form.no_budget.id_for_label }}"
+                {% if form.no_budget.value %}checked{% endif %}
+                class="w-4 h-4 text-blue-600 rounded border-gray-300 cursor-pointer">
+            <label for="{{ form.no_budget.id_for_label }}" class="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                กิจกรรมนี้ <span class="text-orange-600 font-semibold">ไม่ใช้งบประมาณ</span>
+                <span class="text-gray-400 font-normal">(เช่น ประชุม, จัดทำรายงาน)</span>
+            </label>
         </div>
-        {% endif %}
 
-        <div class="flex gap-3 mt-6">
-            <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
-                {% if activity %}แก้ไข{% else %}เพิ่ม{% endif %}กิจกรรม
+        <!-- Section งบประมาณ — ซ่อน/แสดงด้วย JS -->
+        <div id="budget-section">
+            {% if project_sources %}
+            <!-- Budget source mode -->
+            <div class="pt-2">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">งบประมาณแยกตามหมวดเงิน</h3>
+                <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-gray-600 font-medium">หมวดเงิน</th>
+                            <th class="px-3 py-2 text-right text-gray-600 font-medium">งบโครงการ</th>
+                            <th class="px-3 py-2 text-right text-gray-600 font-medium">จัดสรรแล้ว</th>
+                            <th class="px-3 py-2 text-right text-gray-600 font-medium">คงเหลือ</th>
+                            <th class="px-3 py-2 text-right text-gray-600 font-medium">กิจกรรมนี้</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for src in project_sources %}
+                        <tr class="border-t border-gray-100">
+                            <td class="px-3 py-2 font-medium text-gray-700">
+                                {{ src.label }}
+                                {% if src.erp_code %}<span class="text-gray-400 font-normal text-xs">({{ src.erp_code }})</span>{% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-right text-gray-600">{{ src.total|floatformat:2 }}</td>
+                            <td class="px-3 py-2 text-right text-gray-600">{{ src.allocated|floatformat:2 }}</td>
+                            <td class="px-3 py-2 text-right {% if src.remaining < 0 %}text-red-600 font-semibold{% else %}text-green-700{% endif %}">{{ src.remaining|floatformat:2 }}</td>
+                            <td class="px-3 py-2">
+                                {% if src.source_type == 'government' %}
+                                    {{ form.budget_government }}
+                                    {% if form.budget_government.errors %}<p class="text-xs text-red-500">{{ form.budget_government.errors|join:", " }}</p>{% endif %}
+                                {% elif src.source_type == 'accumulated' %}
+                                    {{ form.budget_accumulated }}
+                                    {% if form.budget_accumulated.errors %}<p class="text-xs text-red-500">{{ form.budget_accumulated.errors|join:", " }}</p>{% endif %}
+                                {% elif src.source_type == 'revenue' %}
+                                    {{ form.budget_revenue }}
+                                    {% if form.budget_revenue.errors %}<p class="text-xs text-red-500">{{ form.budget_revenue.errors|join:", " }}</p>{% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-50 border-t border-gray-200">
+                            <td colspan="4" class="px-3 py-2 text-right text-sm font-semibold text-gray-700">รวมกิจกรรมนี้</td>
+                            <td class="px-3 py-2 text-right text-sm font-bold text-blue-900" id="activity-budget-total">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <!-- Legacy mode -->
+            {% with field=form.allocated_budget %}{% include "components/_form_field.html" %}{% endwith %}
+            {% endif %}
+        </div>
+
+        <!-- ระยะเวลา + สถานะ -->
+        <div class="pt-4 border-t border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ระยะเวลาและสถานะ</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% with field=form.start_date %}{% include "components/_form_field.html" %}{% endwith %}
+                {% with field=form.end_date %}{% include "components/_form_field.html" %}{% endwith %}
+                {% with field=form.status %}{% include "components/_form_field.html" %}{% endwith %}
+            </div>
+        </div>
+
+        <!-- ผู้รับผิดชอบ -->
+        <div class="pt-4 border-t border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ผู้รับผิดชอบ</h3>
+            {% with field=form.responsible_persons %}{% include "components/_form_field.html" %}{% endwith %}
+            {% with field=form.notify_persons %}{% include "components/_form_field.html" %}{% endwith %}
+        </div>
+
+        <div class="flex gap-3 pt-4 border-t border-gray-100">
+            <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm font-medium">
+                {% if activity %}บันทึกการแก้ไข{% else %}เพิ่มกิจกรรม{% endif %}
             </button>
             <a href="{% url 'projects:project_detail' pk=project.pk %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">ยกเลิก</a>
         </div>
     </form>
 </div>
+
+<script>
+(function() {
+    const checkbox = document.getElementById('{{ form.no_budget.id_for_label }}');
+    const budgetSection = document.getElementById('budget-section');
+
+    function toggleBudget() {
+        if (checkbox.checked) {
+            budgetSection.style.opacity = '0.4';
+            budgetSection.style.pointerEvents = 'none';
+        } else {
+            budgetSection.style.opacity = '1';
+            budgetSection.style.pointerEvents = '';
+        }
+    }
+
+    checkbox.addEventListener('change', toggleBudget);
+    toggleBudget();
+
+    // Auto-total for source mode
+    function updateActivityTotal() {
+        let total = 0;
+        document.querySelectorAll('input[name^="budget_"]').forEach(function(inp) {
+            total += parseFloat(inp.value) || 0;
+        });
+        const el = document.getElementById('activity-budget-total');
+        if (el) el.textContent = total.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    document.addEventListener('input', function(e) {
+        if (e.target.name && e.target.name.startsWith('budget_')) updateActivityTotal();
+    });
+    updateActivityTotal();
+})();
+</script>
 {% endblock %}

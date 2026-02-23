@@ -214,6 +214,7 @@ class Activity(models.Model):
     budget_government = models.DecimalField('เงินแผ่นดิน', max_digits=12, decimal_places=2, default=0)
     budget_accumulated = models.DecimalField('เงินสะสม', max_digits=12, decimal_places=2, default=0)
     budget_revenue = models.DecimalField('เงินรายได้', max_digits=12, decimal_places=2, default=0)
+    no_budget = models.BooleanField('ไม่ใช้งบประมาณ', default=False)
     start_date = models.DateField('วันที่เริ่ม')
     end_date = models.DateField('วันที่สิ้นสุด')
     status = models.CharField('สถานะ', max_length=12, choices=STATUS_CHOICES, default='pending')
@@ -240,9 +241,15 @@ class Activity(models.Model):
         return f'{self.project.project_code}-{self.activity_number}: {self.name}'
 
     def save(self, *args, **kwargs):
-        total = self.budget_government + self.budget_accumulated + self.budget_revenue
-        if total > 0:
-            self.allocated_budget = total
+        if self.no_budget:
+            self.allocated_budget = 0
+            self.budget_government = 0
+            self.budget_accumulated = 0
+            self.budget_revenue = 0
+        else:
+            total = self.budget_government + self.budget_accumulated + self.budget_revenue
+            if total > 0:
+                self.allocated_budget = total
         super().save(*args, **kwargs)
 
     @property

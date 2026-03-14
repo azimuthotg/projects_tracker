@@ -53,7 +53,19 @@
 <!-- Projects Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200">
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full" style="min-width:900px;table-layout:fixed">
+            <colgroup>
+                <col style="width:110px">  <!-- รหัส -->
+                <col>                       <!-- ชื่อ (flex) -->
+                <col style="width:110px">  <!-- เงินแผ่นดิน -->
+                <col style="width:100px">  <!-- เงินสะสม -->
+                <col style="width:100px">  <!-- เงินรายได้ -->
+                <col style="width:110px">  <!-- งบรวม -->
+                <col style="width:120px">  <!-- ใช้ไป/เหลือ -->
+                <col style="width:60px">   <!-- % -->
+                <col style="width:130px">  <!-- ผู้รับผิดชอบ -->
+                <col style="width:90px">   <!-- สถานะ -->
+            </colgroup>
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">รหัส / ลำดับ</th>
@@ -94,8 +106,8 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-sm">
-                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline">{{ project.name }}</a>
-                        <p class="text-xs text-gray-400 mt-0.5">{{ project.fiscal_year }} · {{ project.department }}</p>
+                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline block truncate">{{ project.name }}</a>
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">{{ project.fiscal_year }} · {{ project.department }}</p>
                     </td>
                     {% with src=project.budget_by_source %}
                     <td class="px-4 py-3 text-sm text-right whitespace-nowrap bg-indigo-50/40 border-l-2 border-indigo-200 {% if src.government %}text-gray-800 font-medium{% else %}text-gray-300{% endif %}">
@@ -122,7 +134,7 @@
                             {{ project.budget_usage_percent|floatformat:1 }}%
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-700">
+                    <td class="px-4 py-3 text-sm text-gray-700 truncate">
                         {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -142,41 +154,42 @@
                 <!-- Activity sub-rows -->
                 {% for activity in project.activities.all %}
                 <tr data-project="{{ project.pk }}" class="bg-gray-50/70 hover:bg-gray-100/60 border-t border-gray-100 hidden">
-                    <td class="pl-8 pr-4 py-2 text-xs text-gray-400">
+                    <td class="pl-8 pr-2 py-2 text-xs text-gray-400">
                         <span class="inline-flex items-center gap-1">
-                            <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            <svg class="w-3 h-3 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             {{ activity.activity_number }}
                         </span>
                     </td>
                     <td class="px-4 py-2 text-xs">
-                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline">{{ activity.name }}</a>
+                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline block truncate">{{ activity.name }}</a>
                     </td>
-                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20 border-l-2 border-indigo-200">—</td>
-                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20">—</td>
-                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20 border-r-2 border-indigo-200">—</td>
+                    <!-- แหล่งเงินจัดสรรของกิจกรรม -->
+                    <td class="px-4 py-2 text-xs text-right bg-indigo-50/20 border-l-2 border-indigo-200 {% if activity.budget_government %}text-gray-600 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_government %}{{ activity.budget_government|floatformat:0|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-xs text-right bg-indigo-50/20 {% if activity.budget_accumulated %}text-gray-600 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_accumulated %}{{ activity.budget_accumulated|floatformat:0|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-xs text-right bg-indigo-50/20 border-r-2 border-indigo-200 {% if activity.budget_revenue %}text-gray-600 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_revenue %}{{ activity.budget_revenue|floatformat:0|intcomma }}{% else %}—{% endif %}
+                    </td>
                     {% if activity.no_budget %}
-                    <td class="px-4 py-2 text-xs text-center bg-emerald-50/20 border-l-2 border-emerald-300">
-                        <span class="inline-block px-2 py-0.5 rounded-full bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">ไม่ใช้งบประมาณ</span>
+                    <td colspan="3" class="px-4 py-2 text-xs text-center bg-emerald-50/20 border-l-2 border-r-2 border-emerald-300">
+                        <span class="inline-block px-2 py-0.5 rounded-full bg-orange-50 text-orange-500 border border-orange-100 text-xs">ไม่ใช้งบ</span>
                     </td>
-                    <td class="px-4 py-2 text-xs text-center text-gray-300 bg-emerald-50/20">—</td>
-                    <td class="px-4 py-2 text-xs text-center text-gray-300 bg-emerald-50/20 border-r-2 border-emerald-300">—</td>
                     {% else %}
-                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap bg-emerald-50/20 border-l-2 border-emerald-300">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
-                    <td class="px-4 py-2 text-xs text-right whitespace-nowrap bg-emerald-50/20">
-                        <div class="text-gray-600">{{ activity.total_spent|floatformat:2|intcomma }}</div>
-                        <div class="text-gray-300">—</div>
-                        <div class="{% if activity.remaining_budget <= 0 %}text-red-600{% else %}text-green-700{% endif %} font-medium">{{ activity.remaining_budget|floatformat:2|intcomma }}</div>
+                    <td class="px-4 py-2 text-xs text-right text-gray-600 bg-emerald-50/20 border-l-2 border-emerald-300">{{ activity.allocated_budget|floatformat:0|intcomma }}</td>
+                    <td class="px-4 py-2 text-xs text-right bg-emerald-50/20">
+                        <div class="text-gray-600">{{ activity.total_spent|floatformat:0|intcomma }}</div>
+                        <div class="{% if activity.remaining_budget <= 0 %}text-red-600{% else %}text-green-700{% endif %} font-medium">{{ activity.remaining_budget|floatformat:0|intcomma }}</div>
                     </td>
-                    <td class="px-4 py-2 text-center whitespace-nowrap bg-emerald-50/20 border-r-2 border-emerald-300">
-                        <span class="text-xs font-semibold
-                            {% if activity.budget_usage_percent >= 90 %}text-red-600
-                            {% elif activity.budget_usage_percent >= 70 %}text-yellow-600
-                            {% else %}text-green-600{% endif %}">
+                    <td class="px-4 py-2 text-center bg-emerald-50/20 border-r-2 border-emerald-300">
+                        <span class="text-xs font-semibold {% if activity.budget_usage_percent >= 90 %}text-red-600{% elif activity.budget_usage_percent >= 70 %}text-yellow-600{% else %}text-green-600{% endif %}">
                             {{ activity.budget_usage_percent|floatformat:1 }}%
                         </span>
                     </td>
                     {% endif %}
-                    <td class="px-4 py-2 text-xs text-gray-600">
+                    <td class="px-4 py-2 text-xs text-gray-600 truncate">
                         {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
                     </td>
                     <td class="px-4 py-2 text-center">

@@ -1,6 +1,12 @@
 from django.conf import settings
 from django.db import models
 
+SOURCE_CHOICES = [
+    ('government', 'เงินแผ่นดิน'),
+    ('accumulated', 'เงินสะสม'),
+    ('revenue', 'เงินรายได้'),
+]
+
 
 class Expense(models.Model):
     STATUS_CHOICES = [
@@ -24,6 +30,11 @@ class Expense(models.Model):
         upload_to='expenses/receipts/',
         blank=True,
         null=True,
+    )
+    budget_source = models.CharField(
+        'แหล่งเงิน', max_length=20,
+        choices=SOURCE_CHOICES,
+        blank=True,
     )
     activity_report = models.ForeignKey(
         'projects.ActivityReport',

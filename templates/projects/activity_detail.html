@@ -17,7 +17,26 @@
 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">{{ activity.name }}</h2>
-        <p class="text-gray-500 mt-1">กิจกรรมที่ {{ activity.activity_number }}</p>
+        <div class="flex flex-wrap items-center gap-2 mt-1">
+            <p class="text-gray-500">กิจกรรมที่ {{ activity.activity_number }}</p>
+            {% if deadline_overdue %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                เกิน deadline {{ days_to_end|cut:"-" }} วัน
+            </span>
+            {% elif deadline_soon %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                เหลือ {{ days_to_end }} วัน
+            </span>
+            {% endif %}
+            {% if budget_full_not_done %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                งบเต็ม 100%
+            </span>
+            {% endif %}
+        </div>
     </div>
     <div class="flex flex-wrap gap-2">
         {% if user.profile.role in "planner,head,admin" %}
@@ -25,6 +44,25 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             แก้ไข
         </a>
+        {% if activity.status != 'completed' and activity.status != 'cancelled' %}
+        <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                เสร็จสิ้นกิจกรรม
+            </button>
+        </form>
+        {% elif activity.status == 'completed' %}
+        <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="in_progress">
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                เปิดใหม่
+            </button>
+        </form>
+        {% endif %}
         {% endif %}
         <a href="{% url 'budget:expense_create_for_activity' activity_pk=activity.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -59,31 +97,38 @@
 </div>
 {% endif %}
 
-<!-- Budget Progress + Info (2-column layout) -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-
-    <!-- Left: สัดส่วนการใช้งบ + รายละเอียด -->
-    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 flex flex-col gap-4">
-        {% if not activity.no_budget %}
-        <div>
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">สัดส่วนการใช้งบประมาณ</p>
-            {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
-        </div>
-        {% endif %}
-        {% if activity.description %}
-        <div class="{% if not activity.no_budget %}pt-3 border-t border-gray-100{% endif %}">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">รายละเอียด</p>
-            <p class="text-sm text-gray-700">{{ activity.description }}</p>
-        </div>
-        {% elif activity.no_budget %}
-        <p class="text-sm text-gray-400 italic">ไม่มีรายละเอียดเพิ่มเติม</p>
+<!-- Alert Banners -->
+{% if budget_full_not_done %}
+<div class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div>
+        <p class="text-sm font-semibold text-red-700">งบประมาณใช้ครบ 100% แล้ว แต่กิจกรรมยังไม่ปิด</p>
+        <p class="text-xs text-red-500 mt-0.5">หากดำเนินกิจกรรมเสร็จสิ้นแล้ว กรุณาเปลี่ยนสถานะเป็น "เสร็จสิ้น"</p>
+    </div>
+</div>
+{% endif %}
+{% if unlinked_alert %}
+<div class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4">
+    <svg class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+    <div>
+        {% if not has_reports %}
+        <p class="text-sm font-semibold text-yellow-700">มีรายการเบิกจ่าย {{ unlinked_count }} รายการ แต่ยังไม่มีรายงานกิจกรรมย่อยรองรับเลย</p>
+        <p class="text-xs text-yellow-600 mt-0.5">กรุณาบันทึกรายงานกิจกรรมย่อย แล้วผูกกับรายการเบิกจ่ายเพื่อความสมบูรณ์ของข้อมูล</p>
+        {% else %}
+        <p class="text-sm font-semibold text-yellow-700">มีรายการเบิกจ่าย {{ unlinked_count }} รายการที่ยังไม่ผูกกับรายงานกิจกรรมย่อย</p>
+        <p class="text-xs text-yellow-600 mt-0.5">ควรผูกรายการเบิกจ่ายกับรายงานกิจกรรมย่อยเพื่อความสมบูรณ์ของข้อมูล</p>
         {% endif %}
     </div>
+</div>
+{% endif %}
 
-    <!-- Right: ข้อมูลกิจกรรม -->
+<!-- Info Section (2-column layout) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+    <!-- Left: ข้อมูลกิจกรรม + รายละเอียด -->
     <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ข้อมูลกิจกรรม</p>
-        <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+        <div class="grid grid-cols-2 gap-3 text-sm mb-3">
             <div>
                 <p class="text-gray-400 text-xs mb-0.5">วันที่เริ่ม</p>
                 <p class="font-medium text-gray-800">{{ activity.start_date|thaidate }}</p>
@@ -92,31 +137,143 @@
                 <p class="text-gray-400 text-xs mb-0.5">วันที่สิ้นสุด</p>
                 <p class="font-medium text-gray-800">{{ activity.end_date|thaidate }}</p>
             </div>
-            <div>
-                <p class="text-gray-400 text-xs mb-0.5">สถานะ</p>
-                <p class="font-medium text-gray-800">{{ activity.get_status_display }}</p>
+        </div>
+        <div class="text-sm mb-3">
+            <p class="text-gray-400 text-xs mb-0.5">สถานะ</p>
+            {% if activity.status == 'pending' %}
+            <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700">{{ activity.get_status_display }}</span>
+            {% elif activity.status == 'in_progress' %}
+            <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">{{ activity.get_status_display }}</span>
+            {% elif activity.status == 'completed' %}
+            <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">{{ activity.get_status_display }}</span>
+            {% else %}
+            <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800">{{ activity.get_status_display }}</span>
+            {% endif %}
+        </div>
+        {% if activity.description %}
+        <div class="pt-3 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">รายละเอียด</p>
+            <p class="text-sm text-gray-700">{{ activity.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right: แหล่งเงิน + สัดส่วนการใช้งบ -->
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+        {% if not activity.no_budget %}
+        {% if source_summary %}
+        <div class="mb-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">แหล่งเงิน</p>
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="pb-2 text-left font-medium text-gray-500">แหล่งเงิน</th>
+                        <th class="pb-2 text-right font-medium text-gray-500">จัดสรร</th>
+                        <th class="pb-2 text-right font-medium text-orange-500">ใช้ไป</th>
+                        <th class="pb-2 text-right font-medium text-green-600">เหลือ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for s in source_summary %}
+                    <tr>
+                        <td class="py-2 text-gray-700 font-medium">{{ s.label }}</td>
+                        <td class="py-2 text-right text-gray-700">{{ s.allocated|floatformat:2|intcomma }}</td>
+                        <td class="py-2 text-right {% if s.spent %}text-orange-600 font-medium{% else %}text-gray-300{% endif %}">
+                            {% if s.spent %}{{ s.spent|floatformat:2|intcomma }}{% else %}0.00{% endif %}
+                        </td>
+                        <td class="py-2 text-right {% if s.remaining > 0 %}text-green-600 font-medium{% elif s.remaining == 0 %}text-gray-400{% else %}text-red-600 font-medium{% endif %}">
+                            {{ s.remaining|floatformat:2|intcomma }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        <div class="{% if source_summary %}pt-3 border-t border-gray-100{% endif %}">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">สัดส่วนการใช้งบประมาณ</p>
+            {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 italic">กิจกรรมนี้ไม่ใช้งบประมาณ</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Responsible & Notify Persons (เหมือน project_detail) -->
+<div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+            <p class="text-gray-500 mb-1">ผู้รับผิดชอบ</p>
+            <div class="flex flex-wrap gap-1">
+                {% for person in activity.responsible_persons.all %}
+                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{{ person.get_full_name|default:person.username }}</span>
+                {% empty %}<span class="text-gray-400 text-xs">-</span>{% endfor %}
             </div>
         </div>
-        <div class="grid grid-cols-1 gap-3 text-sm">
-            <div>
-                <p class="text-gray-400 text-xs mb-1">ผู้รับผิดชอบ</p>
-                <div class="flex flex-wrap gap-1">
-                    {% for person in activity.responsible_persons.all %}
-                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{{ person.get_full_name|default:person.username }}</span>
-                    {% empty %}<span class="text-gray-300 text-xs">-</span>{% endfor %}
-                </div>
-            </div>
-            <div>
-                <p class="text-gray-400 text-xs mb-1">ตั้งแจ้งเตือน</p>
-                <div class="flex flex-wrap gap-1">
-                    {% for person in activity.notify_persons.all %}
-                    <span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{{ person.get_full_name|default:person.username }}</span>
-                    {% empty %}<span class="text-gray-300 text-xs">-</span>{% endfor %}
-                </div>
+        <div>
+            <p class="text-gray-500 mb-1">ตั้งแจ้งเตือน</p>
+            <div class="flex flex-wrap gap-1">
+                {% for person in activity.notify_persons.all %}
+                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{{ person.get_full_name|default:person.username }}</span>
+                {% empty %}<span class="text-gray-400 text-xs">-</span>{% endfor %}
             </div>
         </div>
     </div>
+</div>
 
+<!-- Status Timeline -->
+<div class="bg-white rounded-xl shadow-sm p-5 border border-gray-200 mb-6">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">ประวัติสถานะกิจกรรม</p>
+    <div class="flex items-start gap-0 overflow-x-auto pb-1">
+        {% for step in timeline %}
+        <div class="flex flex-col items-center min-w-[120px] flex-1">
+            <!-- connector line (left) -->
+            <div class="flex items-center w-full">
+                <div class="flex-1 h-0.5 {% if not forloop.first %}{% if step.done or step.active %}bg-blue-400{% else %}bg-gray-200{% endif %}{% else %}bg-transparent{% endif %}"></div>
+                <!-- dot -->
+                {% if step.done %}
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500 shadow-sm flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                {% elif step.active %}
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white border-2 border-blue-500 shadow-sm flex-shrink-0">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                </div>
+                {% else %}
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 border-2 border-gray-200 flex-shrink-0">
+                    <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+                </div>
+                {% endif %}
+                <!-- connector line (right) -->
+                <div class="flex-1 h-0.5 {% if not forloop.last %}{% if step.done %}bg-blue-400{% else %}bg-gray-200{% endif %}{% else %}bg-transparent{% endif %}"></div>
+            </div>
+            <!-- label & meta -->
+            <div class="mt-2 text-center px-1">
+                <p class="text-xs font-semibold {% if step.active %}text-blue-700{% elif step.done %}text-gray-700{% else %}text-gray-400{% endif %} whitespace-nowrap">{{ step.label }}</p>
+                {% if step.date %}
+                <p class="text-xs text-gray-400 mt-0.5">{{ step.date|date:"d/m/Y" }}</p>
+                <p class="text-xs text-gray-500 font-medium">{{ step.user.get_full_name|default:step.user.username }}</p>
+                {% elif step.active and step.status == 'pending' and can_change_status %}
+                <!-- Quick action: เริ่มดำเนินการ -->
+                <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}" class="mt-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="in_progress">
+                    <button type="submit" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors whitespace-nowrap">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        เริ่มดำเนินการ
+                    </button>
+                </form>
+                {% elif step.active %}
+                <p class="text-xs text-blue-500 mt-0.5 italic">สถานะปัจจุบัน</p>
+                {% else %}
+                <p class="text-xs text-gray-300 mt-0.5">—</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
 <!-- Activity Reports -->
@@ -211,27 +368,36 @@
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เลขใบเสร็จ</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จำนวนเงิน</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">โดย</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">หลักฐาน</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด / ใบเสร็จ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-indigo-600 uppercase bg-indigo-50">แหล่งเงิน / จำนวน</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ / โดย</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">หลักฐาน</th>
                     {% if reports %}
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผูกรายงาน</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผูกรายงาน</th>
                     {% endif %}
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {% for expense in expenses %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.expense_date|thaidate }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-800">{{ expense.description }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.receipt_number|default:"-" }}</td>
-                    <td class="px-6 py-4 text-sm text-right text-gray-800">{{ expense.amount|floatformat:2|intcomma }}</td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{{ expense.expense_date|thaidate }}</td>
+                    <td class="px-4 py-4">
+                        <p class="text-sm text-gray-800">{{ expense.description }}</p>
+                        {% if expense.receipt_number %}
+                        <p class="text-xs text-gray-400 mt-0.5">ใบเสร็จ {{ expense.receipt_number }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-4 bg-indigo-50/30">
+                        {% if expense.budget_source %}
+                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 font-medium whitespace-nowrap">{{ expense.get_budget_source_display }}</span>
+                        {% else %}
+                        <span class="text-gray-300 text-xs">—</span>
+                        {% endif %}
+                        <p class="text-sm font-semibold text-gray-800 mt-1">{{ expense.amount|floatformat:2|intcomma }}</p>
+                    </td>
+                    <td class="px-4 py-4">
                         {% if expense.status == 'pending' %}
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{{ expense.get_status_display }}</span>
                         {% elif expense.status == 'approved' %}
@@ -239,32 +405,40 @@
                         {% else %}
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">{{ expense.get_status_display }}</span>
                         {% endif %}
+                        <p class="text-xs text-gray-400 mt-1">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</p>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
-                    <td class="px-6 py-4 text-center">
-                        <div class="flex flex-col items-center gap-1">
+                    <td class="px-4 py-4 text-center">
+                        <div class="flex flex-wrap justify-center gap-1.5">
                         {% if expense.receipt_file %}
-                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                            หลักฐาน
-                        </a>
+                        <button type="button"
+                                class="preview-btn group flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                data-url="{{ expense.receipt_file.url }}"
+                                data-name="หลักฐาน">
+                            <span class="preview-thumb w-10 h-10 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"></span>
+                            <span class="text-xs text-blue-700 group-hover:underline">หลักฐาน</span>
+                        </button>
                         {% endif %}
                         {% for att in expense.attachments.all %}
-                        <a href="{{ att.file.url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                            {{ att.original_filename|truncatechars:15 }}
-                        </a>
+                        <button type="button"
+                                class="preview-btn group flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                data-url="{{ att.file.url }}"
+                                data-name="{{ att.original_filename }}">
+                            <span class="preview-thumb w-10 h-10 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0"></span>
+                            <span class="text-xs text-blue-700 group-hover:underline truncate max-w-[56px]">{{ att.original_filename|truncatechars:8 }}</span>
+                        </button>
                         {% endfor %}
                         {% if not expense.receipt_file and not expense.attachments.exists %}
                         <span class="text-xs text-gray-300">-</span>
                         {% endif %}
                         <!-- Upload attachment inline -->
                         <form method="post" action="{% url 'budget:expense_attachment_add' pk=expense.pk %}"
-                              enctype="multipart/form-data" class="mt-1">
+                              enctype="multipart/form-data">
                             {% csrf_token %}
-                            <label class="cursor-pointer inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                แนบไฟล์
+                            <label class="cursor-pointer flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-gray-100 transition-colors group">
+                                <span class="w-10 h-10 rounded-lg border-2 border-dashed border-gray-300 group-hover:border-blue-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                </span>
+                                <span class="text-xs text-gray-400 group-hover:text-blue-600">แนบ</span>
                                 <input type="file" name="file" accept="application/pdf,image/jpeg,image/png"
                                        class="hidden" onchange="this.form.submit()">
                             </label>
@@ -272,7 +446,7 @@
                         </div>
                     </td>
                     {% if reports %}
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                         <form method="post" action="{% url 'budget:expense_link_report' pk=expense.pk %}"
                               class="flex items-center gap-2">
                             {% csrf_token %}
@@ -293,15 +467,17 @@
                         </form>
                     </td>
                     {% endif %}
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-4 py-4 text-center">
                         <div class="flex items-center justify-center gap-2">
-                        {% if expense.status == 'pending' and expense.created_by == user %}
+                        {% with role=user.profile.role %}
+                        {% if role in "planner,admin" or expense.status == 'pending' and expense.created_by == user %}
                         <a href="{% url 'budget:expense_edit' pk=expense.pk %}"
                            class="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             แก้ไข
                         </a>
                         {% endif %}
+                        {% endwith %}
                         {% with role=user.profile.role %}
                         {% if role == 'admin' or expense.status == 'pending' and expense.created_by == user or expense.status == 'pending' and role == 'head' %}
                         <form method="post" action="{% url 'budget:expense_delete' pk=expense.pk %}"
@@ -320,7 +496,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="px-6 py-12 text-center">
+                    <td colspan="{% if reports %}7{% else %}6{% endif %}" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
                                 <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
@@ -403,4 +579,117 @@
     {% endfor %}
 </div>
 {% endif %}
+
+<!-- ===== File Preview Modal ===== -->
+<div id="filePreviewModal"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+     onclick="if(event.target===this)closeFilePreview()">
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col"
+         style="max-height:90vh">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+            <p id="previewModalName" class="text-sm font-medium text-gray-800 truncate mr-4"></p>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <a id="previewModalOpen" href="#" target="_blank"
+                   class="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    เปิดแท็บใหม่
+                </a>
+                <button onclick="closeFilePreview()"
+                        class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+        <!-- Content -->
+        <div id="previewModalContent"
+             class="flex-1 overflow-auto p-4 flex items-center justify-center min-h-0"
+             style="min-height:200px">
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const IMG_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+
+    function extOf(url) {
+        return (url.split('?')[0].split('.').pop() || '').toLowerCase();
+    }
+
+    function pdfThumb() {
+        return `<span class="flex flex-col items-center justify-center w-full h-full bg-red-50">
+            <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-xs font-bold text-red-500 mt-0.5">PDF</span>
+        </span>`;
+    }
+
+    // Init thumbnails
+    document.querySelectorAll('.preview-btn').forEach(function (btn) {
+        var url = btn.dataset.url;
+        var thumb = btn.querySelector('.preview-thumb');
+        var ext = extOf(url);
+        if (IMG_EXTS.includes(ext)) {
+            var img = document.createElement('img');
+            img.src = url;
+            img.className = 'w-full h-full object-cover';
+            img.onerror = function () { thumb.innerHTML = pdfThumb(); };
+            thumb.appendChild(img);
+        } else {
+            thumb.innerHTML = pdfThumb();
+        }
+    });
+
+    // Open modal
+    window.openFilePreview = function (url, name) {
+        var modal = document.getElementById('filePreviewModal');
+        var content = document.getElementById('previewModalContent');
+        document.getElementById('previewModalName').textContent = name;
+        document.getElementById('previewModalOpen').href = url;
+        content.innerHTML = '';
+
+        var ext = extOf(url);
+        if (IMG_EXTS.includes(ext)) {
+            var img = document.createElement('img');
+            img.src = url;
+            img.className = 'max-w-full rounded-xl shadow-sm';
+            img.style.maxHeight = '75vh';
+            img.style.objectFit = 'contain';
+            content.appendChild(img);
+        } else {
+            var iframe = document.createElement('iframe');
+            iframe.src = url + '#toolbar=1&navpanes=0&view=FitH';
+            iframe.className = 'w-full rounded-xl border-0';
+            iframe.style.height = '75vh';
+            content.appendChild(iframe);
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeFilePreview = function () {
+        var modal = document.getElementById('filePreviewModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('previewModalContent').innerHTML = '';
+        document.body.style.overflow = '';
+    };
+
+    // Wire up all preview buttons after DOM ready
+    document.querySelectorAll('.preview-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openFilePreview(btn.dataset.url, btn.dataset.name);
+        });
+    });
+
+    // Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeFilePreview();
+    });
+}());
+</script>
 {% endblock %}

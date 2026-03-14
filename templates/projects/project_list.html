@@ -9,12 +9,18 @@
         <h2 class="text-2xl font-bold text-gray-800">โครงการทั้งหมด</h2>
         <p class="text-gray-500 mt-1">รายการโครงการที่คุณมีสิทธิ์เข้าถึง</p>
     </div>
-    {% if user.profile.role in "planner,head,admin" %}
-    <a href="{% url 'projects:project_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        สร้างโครงการใหม่
-    </a>
-    {% endif %}
+    <div class="flex gap-2">
+        <button id="toggleAllBtn" onclick="toggleAllActivities()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm border border-gray-300">
+            <svg id="toggleAllIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <span id="toggleAllText">เปิดกิจกรรมทั้งหมด</span>
+        </button>
+        {% if user.profile.role in "planner,head,admin" %}
+        <a href="{% url 'projects:project_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            สร้างโครงการใหม่
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Filters -->
@@ -50,12 +56,20 @@
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส / ลำดับ</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อโครงการ / กิจกรรม</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้รับผิดชอบ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">งบประมาณ</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ใช้ไป / สัดส่วน</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">รหัส / ลำดับ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ชื่อโครงการ / กิจกรรม</th>
+                    <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-indigo-700 uppercase bg-indigo-50 border-l-2 border-r-2 border-indigo-200">แหล่งเงิน</th>
+                    <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-emerald-700 uppercase bg-emerald-50 border-l-2 border-r-2 border-emerald-300">งบประมาณ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ผู้รับผิดชอบ</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" rowspan="2">สถานะ</th>
+                </tr>
+                <tr>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 border-l-2 border-indigo-200 whitespace-nowrap">เงินแผ่นดิน</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 whitespace-nowrap">เงินสะสม</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 border-r-2 border-indigo-200 whitespace-nowrap">เงินรายได้</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-emerald-700 bg-emerald-50 border-l-2 border-emerald-300 whitespace-nowrap">งบรวม</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-emerald-700 bg-emerald-50 whitespace-nowrap">ใช้ไป / เหลือ</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-emerald-700 bg-emerald-50 border-r-2 border-emerald-300 whitespace-nowrap">%</th>
                 </tr>
             </thead>
             <tbody>
@@ -83,15 +97,33 @@
                         <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline">{{ project.name }}</a>
                         <p class="text-xs text-gray-400 mt-0.5">{{ project.fiscal_year }} · {{ project.department }}</p>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-700">
-                        {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
+                    {% with src=project.budget_by_source %}
+                    <td class="px-4 py-3 text-sm text-right whitespace-nowrap bg-indigo-50/40 border-l-2 border-indigo-200 {% if src.government %}text-gray-800 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if src.government %}{{ src.government|floatformat:2|intcomma }}{% else %}—{% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-800 whitespace-nowrap">{{ project.total_budget|floatformat:2|intcomma }}</td>
-                    <td class="px-4 py-3 text-sm text-right">
-                        <div class="text-gray-800 whitespace-nowrap">{{ project.total_spent|floatformat:2|intcomma }}</div>
-                        <div class="w-28 mt-1 ml-auto">
-                            {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
-                        </div>
+                    <td class="px-4 py-3 text-sm text-right whitespace-nowrap bg-indigo-50/40 {% if src.accumulated %}text-gray-800 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if src.accumulated %}{{ src.accumulated|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right whitespace-nowrap bg-indigo-50/40 border-r-2 border-indigo-200 {% if src.revenue %}text-gray-800 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if src.revenue %}{{ src.revenue|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    {% endwith %}
+                    <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900 whitespace-nowrap bg-emerald-50/30 border-l-2 border-emerald-300">{{ project.total_budget|floatformat:2|intcomma }}</td>
+                    <td class="px-4 py-3 text-xs text-right whitespace-nowrap bg-emerald-50/30">
+                        <div class="text-gray-700">{{ project.total_spent|floatformat:2|intcomma }}</div>
+                        <div class="text-gray-400 text-xs">—</div>
+                        <div class="{% if project.remaining_budget <= 0 %}text-red-600{% else %}text-green-700{% endif %} font-medium">{{ project.remaining_budget|floatformat:2|intcomma }}</div>
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap bg-emerald-50/30 border-r-2 border-emerald-300">
+                        <span class="text-sm font-semibold
+                            {% if project.budget_usage_percent >= 90 %}text-red-600
+                            {% elif project.budget_usage_percent >= 70 %}text-yellow-600
+                            {% else %}text-green-600{% endif %}">
+                            {{ project.budget_usage_percent|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
                     </td>
                     <td class="px-4 py-3 text-center">
                         {% if project.status == 'draft' %}
@@ -119,23 +151,34 @@
                     <td class="px-4 py-2 text-xs">
                         <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline">{{ activity.name }}</a>
                     </td>
-                    <td class="px-4 py-2 text-xs text-gray-600">
-                        {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %} {% endif %}{% endfor %}
-                    </td>
+                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20 border-l-2 border-indigo-200">—</td>
+                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20">—</td>
+                    <td class="px-4 py-2 text-xs text-gray-300 text-right bg-indigo-50/20 border-r-2 border-indigo-200">—</td>
                     {% if activity.no_budget %}
-                    <td class="px-4 py-2 text-xs text-center">
+                    <td class="px-4 py-2 text-xs text-center bg-emerald-50/20 border-l-2 border-emerald-300">
                         <span class="inline-block px-2 py-0.5 rounded-full bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">ไม่ใช้งบประมาณ</span>
                     </td>
-                    <td class="px-4 py-2 text-xs text-center text-gray-300">—</td>
+                    <td class="px-4 py-2 text-xs text-center text-gray-300 bg-emerald-50/20">—</td>
+                    <td class="px-4 py-2 text-xs text-center text-gray-300 bg-emerald-50/20 border-r-2 border-emerald-300">—</td>
                     {% else %}
-                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
-                    <td class="px-4 py-2 text-xs text-right">
-                        <div class="text-gray-600 whitespace-nowrap">{{ activity.total_spent|floatformat:2|intcomma }}</div>
-                        <div class="w-24 mt-0.5 ml-auto">
-                            {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
-                        </div>
+                    <td class="px-4 py-2 text-xs text-right text-gray-600 whitespace-nowrap bg-emerald-50/20 border-l-2 border-emerald-300">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
+                    <td class="px-4 py-2 text-xs text-right whitespace-nowrap bg-emerald-50/20">
+                        <div class="text-gray-600">{{ activity.total_spent|floatformat:2|intcomma }}</div>
+                        <div class="text-gray-300">—</div>
+                        <div class="{% if activity.remaining_budget <= 0 %}text-red-600{% else %}text-green-700{% endif %} font-medium">{{ activity.remaining_budget|floatformat:2|intcomma }}</div>
+                    </td>
+                    <td class="px-4 py-2 text-center whitespace-nowrap bg-emerald-50/20 border-r-2 border-emerald-300">
+                        <span class="text-xs font-semibold
+                            {% if activity.budget_usage_percent >= 90 %}text-red-600
+                            {% elif activity.budget_usage_percent >= 70 %}text-yellow-600
+                            {% else %}text-green-600{% endif %}">
+                            {{ activity.budget_usage_percent|floatformat:1 }}%
+                        </span>
                     </td>
                     {% endif %}
+                    <td class="px-4 py-2 text-xs text-gray-600">
+                        {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </td>
                     <td class="px-4 py-2 text-center">
                         {% if activity.status == 'pending' %}
                         <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{{ activity.get_status_display }}</span>
@@ -151,7 +194,7 @@
                 {% endfor %}
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-6 py-16 text-center">
+                    <td colspan="10" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
                                 <svg class="w-8 h-8 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -185,6 +228,28 @@ function toggleActivities(projectId, btn) {
 
     rows.forEach(row => row.classList.toggle('hidden', !isHidden));
     icon.classList.toggle('rotate-90', isHidden);
+}
+
+let allExpanded = false;
+function toggleAllActivities() {
+    allExpanded = !allExpanded;
+    const allRows = document.querySelectorAll('tr[data-project]');
+    allRows.forEach(row => row.classList.toggle('hidden', !allExpanded));
+
+    // sync ปุ่มลูกศรแต่ละโครงการ
+    document.querySelectorAll('button[onclick^="toggleActivities"]').forEach(btn => {
+        btn.querySelector('svg').classList.toggle('rotate-90', allExpanded);
+    });
+
+    const text = document.getElementById('toggleAllText');
+    const icon = document.getElementById('toggleAllIcon');
+    if (allExpanded) {
+        text.textContent = 'ปิดกิจกรรมทั้งหมด';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>';
+    } else {
+        text.textContent = 'เปิดกิจกรรมทั้งหมด';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>';
+    }
 }
 </script>
 {% endblock %}

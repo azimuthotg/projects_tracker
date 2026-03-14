@@ -124,6 +124,11 @@ class Project(models.Model):
     def __str__(self):
         return f'{self.project_code} - {self.name}'
 
+    @property
+    def budget_by_source(self):
+        """Returns dict: {'government': amount, 'accumulated': amount, 'revenue': amount}"""
+        return {s.source_type: s.amount for s in self.budget_sources.all()}
+
     def budget_source_summary(self, exclude_activity_pk=None):
         """Returns list of dicts with per-source budget info for activity form display."""
         result = []
@@ -142,6 +147,25 @@ class Project(models.Model):
                 'remaining': source.amount - allocated,
             })
         return result
+
+    def spent_by_source(self, source_type, exclude_expense_pk=None):
+        """ยอดใช้จ่าย approved แยกตามแหล่งเงิน (ทุก activity ในโครงการ)"""
+        from apps.budget.models import Expense
+        qs = Expense.objects.filter(
+            activity__project=self,
+            status='approved',
+            budget_source=source_type,
+        )
+        if exclude_expense_pk:
+            qs = qs.exclude(pk=exclude_expense_pk)
+        return qs.aggregate(total=Sum('amount'))['total'] or 0
+
+    def remaining_by_source(self, source_type, exclude_expense_pk=None):
+        """งบคงเหลือแยกตามแหล่งเงิน"""
+        source = self.budget_sources.filter(source_type=source_type).first()
+        if not source:
+            return 0
+        return source.amount - self.spent_by_source(source_type, exclude_expense_pk)
 
     @property
     def total_allocated(self):

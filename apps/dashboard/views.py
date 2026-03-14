@@ -1,13 +1,13 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
 from apps.budget.models import Expense
 from apps.budget.utils import get_expenses_for_user
-from apps.projects.models import Activity
+from apps.projects.models import Activity, ActivityReport
 from apps.projects.utils import get_projects_for_user
 
 
@@ -62,6 +62,101 @@ def index(request):
             ).distinct()
         upcoming_activities = upcoming_activities.select_related('project')[:5]
 
+        # --- รายการที่ต้องติดตาม (สำหรับ planner/head/admin) ---
+        attention = {}
+        if role in ('planner', 'head', 'admin'):
+            if role == 'admin':
+                scoped = Activity.objects.filter(project__in=projects)
+            else:
+                scoped = Activity.objects.filter(
+                    project__department=profile.department,
+                    project__in=projects,
+                )
+
+            # 1. กิจกรรม overdue (เลย deadline แล้วยังไม่เสร็จ)
+            overdue_acts = scoped.filter(
+                end_date__lt=today,
+                status__in=['pending', 'in_progress'],
+            ).select_related('project').order_by('end_date')[:8]
+
+            # 2. งบเต็มแต่ยังไม่ปิดกิจกรรม (annotate total_spent)
+            budget_full_acts = scoped.filter(
+                status__in=['pending', 'in_progress'],
+                no_budget=False,
+                allocated_budget__gt=0,
+            ).annotate(
+                ann_spent=Sum('expenses__amount', filter=Q(expenses__status='approved'))
+            ).filter(
+                ann_spent__gte=F('allocated_budget')
+            ).select_related('project')[:8]
+
+            # 3. มี expense อนุมัติแล้ว แต่ไม่มีรายงานรองรับเลย
+            no_report_acts = scoped.filter(
+                expenses__status='approved',
+                expenses__activity_report__isnull=True,
+            ).exclude(
+                pk__in=ActivityReport.objects.values('activity_id')
+            ).distinct().select_related('project')[:8]
+
+            # unlinked expense ต่อ activity สำหรับ tooltip
+            unlinked_counts = {
+                row['activity_id']: row['cnt']
+                for row in Expense.objects.filter(
+                    activity__in=scoped,
+                    status='approved',
+                    activity_report__isnull=True,
+                ).values('activity_id').annotate(cnt=Sum('id') - Sum('id') + Sum('id'))
+            }
+            # simpler: just count
+            from django.db.models import Count as _Count
+            unlinked_counts = {
+                row['activity_id']: row['cnt']
+                for row in Expense.objects.filter(
+                    activity__in=scoped,
+                    status='approved',
+                    activity_report__isnull=True,
+                ).values('activity_id').annotate(cnt=_Count('id'))
+            }
+            for act in no_report_acts:
+                act.unlinked_expense_count = unlinked_counts.get(act.pk, 0)
+
+            # 4. มี expense แต่ยังไม่ระบุแหล่งเงิน (budget_source='')
+            no_source_acts = scoped.filter(
+                expenses__status__in=['pending', 'approved'],
+                expenses__budget_source='',
+            ).distinct().select_related('project')[:8]
+
+            no_source_counts = {
+                row['activity_id']: row['cnt']
+                for row in Expense.objects.filter(
+                    activity__in=scoped,
+                    status__in=['pending', 'approved'],
+                    budget_source='',
+                ).values('activity_id').annotate(cnt=_Count('id'))
+            }
+            for act in no_source_acts:
+                act.no_source_expense_count = no_source_counts.get(act.pk, 0)
+
+            attention = {
+                'overdue_acts': overdue_acts,
+                'overdue_count': scoped.filter(end_date__lt=today, status__in=['pending', 'in_progress']).count(),
+                'budget_full_acts': budget_full_acts,
+                'budget_full_count': scoped.filter(
+                    status__in=['pending', 'in_progress'], no_budget=False, allocated_budget__gt=0,
+                ).annotate(ann_spent=Sum('expenses__amount', filter=Q(expenses__status='approved'))
+                ).filter(ann_spent__gte=F('allocated_budget')).count(),
+                'no_report_acts': no_report_acts,
+                'no_report_count': scoped.filter(
+                    expenses__status='approved',
+                    expenses__activity_report__isnull=True,
+                ).exclude(pk__in=ActivityReport.objects.values('activity_id')).distinct().count(),
+                'no_source_acts': no_source_acts,
+                'no_source_count': scoped.filter(
+                    expenses__status__in=['pending', 'approved'],
+                    expenses__budget_source='',
+                ).distinct().count(),
+            }
+
         context.update({
             'projects_count': projects.count(),
             'active_projects_count': active_projects.count(),
@@ -74,6 +169,7 @@ def index(request):
             'upcoming_activities': upcoming_activities,
             'projects': active_projects[:10],
             'role': role,
+            'attention': attention,
         })
 
     return render(request, 'dashboard/index.html', context)

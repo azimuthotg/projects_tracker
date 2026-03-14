@@ -22,11 +22,54 @@
 
     <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {% csrf_token %}
+        {% if locked_activity %}
+        <!-- แสดงกิจกรรมแบบ lock -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">กิจกรรม</label>
+            <div class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 flex items-center gap-2">
+                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span><span class="font-medium text-blue-900">{{ locked_activity.project.project_code }}</span> / กิจกรรมที่ {{ locked_activity.activity_number }} — {{ locked_activity.name }}</span>
+            </div>
+            <input type="hidden" name="activity" value="{{ locked_activity.pk }}">
+        </div>
+        {% endif %}
         {% for field in form %}
-        {% if field.html_name == 'activity_report' %}
+        {% if locked_activity and field.html_name == 'activity' %}
+        {# ซ่อน activity field เมื่อล็อคแล้ว #}
+        {% elif field.html_name == 'activity_report' %}
             {% if field.field.queryset.exists %}
             {% include "components/_form_field.html" %}
             {% endif %}
+        {% elif field.html_name == 'budget_source' %}
+        {% include "components/_form_field.html" %}
+        {% if source_summary %}
+        <!-- Info box แหล่งเงิน -->
+        <div class="mb-4 -mt-2 rounded-lg border border-indigo-200 bg-indigo-50/60 overflow-hidden">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="bg-indigo-100 text-indigo-700">
+                        <th class="px-4 py-2 text-left font-semibold">แหล่งเงิน</th>
+                        <th class="px-4 py-2 text-right font-semibold">จัดสรร</th>
+                        <th class="px-4 py-2 text-right font-semibold">ใช้ไปแล้ว</th>
+                        <th class="px-4 py-2 text-right font-semibold">คงเหลือ</th>
+                    </tr>
+                </thead>
+                <tbody id="sourceSummaryBody">
+                    {% for s in source_summary %}
+                    <tr class="border-t border-indigo-100 transition-colors duration-150 cursor-default"
+                        data-source="{{ s.source_type }}" id="srcRow_{{ s.source_type }}">
+                        <td class="px-4 py-2 font-medium text-gray-700">{{ s.label }}</td>
+                        <td class="px-4 py-2 text-right text-gray-600">{{ s.amount|floatformat:2 }}</td>
+                        <td class="px-4 py-2 text-right text-orange-600">{{ s.spent|floatformat:2 }}</td>
+                        <td class="px-4 py-2 text-right font-semibold {% if s.remaining <= 0 %}text-red-600{% else %}text-green-700{% endif %}">
+                            {{ s.remaining|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
         {% else %}
         {% include "components/_form_field.html" %}
         {% endif %}
@@ -49,4 +92,20 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const sourceSelect = document.getElementById('id_budget_source');
+if (sourceSelect) {
+    function highlightRow(val) {
+        document.querySelectorAll('#sourceSummaryBody tr').forEach(row => {
+            const isSelected = row.dataset.source === val;
+            row.classList.toggle('bg-indigo-200/60', isSelected);
+        });
+    }
+    sourceSelect.addEventListener('change', () => highlightRow(sourceSelect.value));
+    highlightRow(sourceSelect.value);
+}
+</script>
 {% endblock %}

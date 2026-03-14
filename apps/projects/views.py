@@ -2,7 +2,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import FloatField, Q
+from django.db.models.functions import Cast
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -34,6 +35,10 @@ def project_list(request):
             Q(name__icontains=search) | Q(project_code__icontains=search)
         )
 
+    projects = projects.prefetch_related('budget_sources').annotate(
+        code_num=Cast('project_code', FloatField())
+    ).order_by('code_num', 'project_code')
+
     fiscal_years = FiscalYear.objects.all()
 
     context = {
@@ -54,15 +59,35 @@ def project_detail(request, pk):
     if not projects.filter(pk=pk).exists():
         raise PermissionDenied
 
-    activities = project.activities.all()
+    activities = project.activities.prefetch_related('responsible_persons', 'notify_persons').all()
     recent_expenses = Expense.objects.filter(
         activity__project=project
     ).select_related('activity', 'created_by').order_by('-created_at')[:10]
+
+    activities = list(activities)
+
+    # สรุปแหล่งเงิน: จัดสรร / ใช้ไป / เหลือ
+    source_summary = []
+    total_tagged = 0
+    for source in project.budget_sources.all():
+        spent = project.spent_by_source(source.source_type)
+        total_tagged += spent
+        source_summary.append({
+            'label': source.get_source_type_display(),
+            'source_type': source.source_type,
+            'amount': source.amount,
+            'spent': spent,
+            'remaining': source.amount - spent,
+        })
+    # ยอดที่ยังไม่ระบุแหล่งเงิน
+    untagged_spent = project.total_spent - total_tagged
 
     context = {
         'project': project,
         'activities': activities,
         'recent_expenses': recent_expenses,
+        'untagged_spent': untagged_spent,
+        'source_summary': source_summary,
     }
     return render(request, 'projects/project_detail.html', context)
 
@@ -182,11 +207,117 @@ def activity_detail(request, project_pk, pk):
     )
     reports = ActivityReport.objects.filter(activity=activity).select_related('created_by')
 
+    # สรุปแหล่งเงินต่อกิจกรรม: จัดสรร / ใช้จริง (จาก expense ที่มี budget_source) / เหลือ
+    from django.db.models import Sum as _Sum
+    src_spent = {
+        row['budget_source']: row['total']
+        for row in Expense.objects.filter(
+            activity=activity, status='approved',
+            budget_source__in=['government', 'accumulated', 'revenue'],
+        ).values('budget_source').annotate(total=_Sum('amount'))
+    }
+    SOURCE_LABELS = {'government': 'เงินแผ่นดิน', 'accumulated': 'เงินสะสม', 'revenue': 'เงินรายได้'}
+    source_summary = []
+    for src, label in SOURCE_LABELS.items():
+        allocated = getattr(activity, f'budget_{src}', 0)
+        if allocated:
+            spent = src_spent.get(src, 0)
+            source_summary.append({
+                'label': label,
+                'allocated': allocated,
+                'spent': spent,
+                'remaining': allocated - spent,
+            })
+
+    # --- Deadline & Budget alerts ---
+    from django.utils import timezone as _tz
+    from datetime import date as _date
+    today = _date.today()
+    days_to_end = (activity.end_date - today).days if activity.end_date else None
+    deadline_overdue = days_to_end is not None and days_to_end < 0 and activity.status not in ('completed', 'cancelled')
+    deadline_soon    = days_to_end is not None and 0 <= days_to_end <= 7 and activity.status not in ('completed', 'cancelled')
+
+    budget_full_not_done = (
+        not activity.no_budget and
+        activity.budget_usage_percent >= 100 and
+        activity.status not in ('completed', 'cancelled')
+    )
+    approved_expenses = expenses.filter(status='approved')
+    unlinked_count = approved_expenses.filter(activity_report__isnull=True).count()
+    has_reports = reports.count() > 0
+    # alert เมื่อมี expense ที่ไม่มีรายงานรองรับ ไม่ว่าจะมีรายงานอยู่แล้วหรือไม่
+    unlinked_alert = unlinked_count > 0
+
+    # --- Status Timeline ---
+    from apps.accounts.models import AuditLog
+    from django.db.models import Q as _Q
+    activity_logs = AuditLog.objects.filter(
+        action__in=['ACTIVITY_STATUS', 'ACTIVITY_CREATE'],
+    ).filter(
+        _Q(target_repr__contains=f'กิจกรรม {activity.activity_number}:') |
+        _Q(target_repr__contains=f'กิจกรรมที่ {activity.activity_number} -')
+    ).filter(
+        target_repr__startswith=str(project.project_code)
+    ).select_related('user').order_by('created_at')
+
+    STATUS_LABELS = {
+        'pending': 'รอดำเนินการ',
+        'in_progress': 'กำลังดำเนินการ',
+        'completed': 'เสร็จสิ้น',
+        'cancelled': 'ยกเลิก',
+    }
+    STATUS_ORDER = ['pending', 'in_progress', 'completed']
+
+    # map status → most recent log that transitioned TO that status
+    status_events = {}
+    create_event = None
+    for log in activity_logs:
+        if log.action == 'ACTIVITY_CREATE':
+            create_event = log
+        elif log.action == 'ACTIVITY_STATUS':
+            try:
+                new_s = log.detail.split('→')[-1].strip()
+                status_events[new_s] = log
+            except Exception:
+                pass
+
+    current_idx = STATUS_ORDER.index(activity.status) if activity.status in STATUS_ORDER else 0
+    timeline = []
+    if create_event:
+        timeline.append({'type': 'create', 'label': 'สร้างกิจกรรม', 'done': True, 'active': False,
+                         'user': create_event.user, 'date': create_event.created_at})
+    for i, s in enumerate(STATUS_ORDER):
+        log = status_events.get(s)
+        is_current = (s == activity.status)
+        is_done = (i < current_idx) or (is_current and s == 'completed')
+        timeline.append({'type': 'status', 'status': s, 'label': STATUS_LABELS[s],
+                         'done': is_done, 'active': is_current,
+                         'user': log.user if log else None,
+                         'date': log.created_at if log else None})
+
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    can_change_status = (
+        role in ('planner', 'head', 'admin') or
+        activity.responsible_persons.filter(pk=request.user.pk).exists()
+    )
+
     context = {
         'project': project,
         'activity': activity,
         'expenses': expenses,
         'reports': reports,
+        'source_summary': source_summary,
+        # deadline & alerts
+        'days_to_end': days_to_end,
+        'deadline_overdue': deadline_overdue,
+        'deadline_soon': deadline_soon,
+        'budget_full_not_done': budget_full_not_done,
+        'unlinked_count': unlinked_count,
+        'unlinked_alert': unlinked_alert,
+        'has_reports': has_reports,
+        # timeline
+        'timeline': timeline,
+        'can_change_status': can_change_status,
     }
     return render(request, 'projects/activity_detail.html', context)
 
@@ -357,6 +488,11 @@ def activity_report_create(request, activity_pk):
     if not projects.filter(pk=activity.project_id).exists():
         raise PermissionDenied
 
+    # expense ที่ approved และยังไม่ผูกกับรายงานใด
+    linkable_expenses = Expense.objects.filter(
+        activity=activity, status='approved', activity_report__isnull=True
+    ).order_by('expense_date')
+
     if request.method == 'POST':
         form = ActivityReportForm(request.POST, request.FILES)
         if form.is_valid():
@@ -368,6 +504,12 @@ def activity_report_create(request, activity_pk):
             )['max_round'] or 0
             report.round_number = last + 1
             report.save()
+            # ผูก expense ที่เลือก
+            selected_ids = request.POST.getlist('link_expenses')
+            if selected_ids:
+                Expense.objects.filter(
+                    pk__in=selected_ids, activity=activity, status='approved'
+                ).update(activity_report=report)
             messages.success(request, f'บันทึกรายงานครั้งที่ {report.round_number} สำเร็จ')
             return redirect('projects:activity_detail',
                             project_pk=activity.project_id, pk=activity.pk)
@@ -378,6 +520,7 @@ def activity_report_create(request, activity_pk):
         'form': form,
         'activity': activity,
         'project': activity.project,
+        'linkable_expenses': linkable_expenses,
         'title': 'บันทึกรายงานกิจกรรมย่อย',
     })
 
@@ -390,10 +533,31 @@ def activity_report_edit(request, pk):
     if not projects.filter(pk=activity.project_id).exists():
         raise PermissionDenied
 
+    # expense ที่ผูกอยู่แล้ว + ที่ยังไม่ผูก (รวมกันเพื่อแสดง)
+    linked_expenses = Expense.objects.filter(
+        activity=activity, status='approved', activity_report=report
+    ).order_by('expense_date')
+    linkable_expenses = Expense.objects.filter(
+        activity=activity, status='approved', activity_report__isnull=True
+    ).order_by('expense_date')
+
     if request.method == 'POST':
         form = ActivityReportForm(request.POST, request.FILES, instance=report)
         if form.is_valid():
             form.save()
+            # อัปเดต expense links: unlink ที่ถูก uncheck, link ที่ถูก check
+            selected_ids = set(request.POST.getlist('link_expenses'))
+            linked_ids = set(str(e.pk) for e in linked_expenses)
+            # unlink ที่ถูกเอาออก
+            to_unlink = linked_ids - selected_ids
+            if to_unlink:
+                Expense.objects.filter(pk__in=to_unlink).update(activity_report=None)
+            # link ใหม่
+            to_link = selected_ids - linked_ids
+            if to_link:
+                Expense.objects.filter(
+                    pk__in=to_link, activity=activity, status='approved'
+                ).update(activity_report=report)
             messages.success(request, f'แก้ไขรายงานครั้งที่ {report.round_number} สำเร็จ')
             return redirect('projects:activity_detail',
                             project_pk=activity.project_id, pk=activity.pk)
@@ -405,6 +569,8 @@ def activity_report_edit(request, pk):
         'report': report,
         'activity': activity,
         'project': activity.project,
+        'linked_expenses': linked_expenses,
+        'linkable_expenses': linkable_expenses,
         'title': f'แก้ไขรายงานครั้งที่ {report.round_number}',
     })
 
@@ -546,6 +712,36 @@ def budget_transfer(request, project_pk):
         'form': form,
         'transfers': transfers,
     })
+
+
+@role_required(['planner', 'head', 'admin'])
+def activity_status_change(request, project_pk, pk):
+    if request.method != 'POST':
+        raise PermissionDenied
+
+    project = get_object_or_404(Project, pk=project_pk)
+    projects = get_projects_for_user(request.user)
+    if not projects.filter(pk=project_pk).exists():
+        raise PermissionDenied
+
+    activity = get_object_or_404(Activity, pk=pk, project=project)
+    new_status = request.POST.get('status')
+    valid_statuses = [s[0] for s in Activity.STATUS_CHOICES]
+    if new_status not in valid_statuses:
+        messages.error(request, 'สถานะไม่ถูกต้อง')
+        return redirect('projects:activity_detail', project_pk=project_pk, pk=pk)
+
+    old_status = activity.status
+    activity.status = new_status
+    activity.save()
+    log_action(
+        actor=request.user, action='ACTIVITY_STATUS',
+        target_repr=f'{project.project_code} / กิจกรรมที่ {activity.activity_number} - {activity.name}',
+        detail=f'สถานะ: {old_status} → {new_status}',
+        ip_address=get_client_ip(request),
+    )
+    messages.success(request, f'เปลี่ยนสถานะกิจกรรมเป็น "{activity.get_status_display()}" สำเร็จ')
+    return redirect('projects:activity_detail', project_pk=project_pk, pk=pk)
 
 
 @login_required

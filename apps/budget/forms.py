@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Expense, ExpenseAttachment
+from .models import SOURCE_CHOICES, Expense, ExpenseAttachment
 
 TAILWIND_INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500'
 TAILWIND_FILE = (
@@ -34,15 +34,15 @@ def _apply_tailwind(form):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ['activity', 'description', 'amount', 'expense_date', 'receipt_number', 'receipt_file', 'activity_report']
+        fields = ['activity', 'budget_source', 'description', 'amount', 'expense_date', 'receipt_number', 'receipt_file', 'activity_report']
         widgets = {
-            'expense_date': forms.DateInput(attrs={'type': 'date'}),
+            'expense_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'receipt_file': forms.ClearableFileInput(attrs={'accept': 'application/pdf,image/jpeg,image/png'}),
         }
 
     def __init__(self, *args, activity_pk=None, **kwargs):
         super().__init__(*args, **kwargs)
-        from apps.projects.models import ActivityReport
+        from apps.projects.models import ActivityReport, ProjectBudgetSource
 
         # Determine which activity to filter reports by
         act_pk = activity_pk
@@ -54,10 +54,19 @@ class ExpenseForm(forms.ModelForm):
             self.fields['activity_report'].label_from_instance = (
                 lambda r: f'ครั้งที่ {r.round_number}: {r.title} ({r.date.strftime("%d/%m/%Y")})'
             )
+            # โหลด choices เฉพาะแหล่งเงินที่โครงการนั้นมีจริง
+            sources = ProjectBudgetSource.objects.filter(
+                project__activities__pk=act_pk
+            ).values_list('source_type', flat=True)
+            source_dict = dict(SOURCE_CHOICES)
+            self.fields['budget_source'].choices = [('', '--- เลือกแหล่งเงิน ---')] + [
+                (s, source_dict[s]) for s in sources if s in source_dict
+            ]
         else:
-            self.fields['activity_report'].queryset = ActivityReport.objects.none()
+            self.fields['budget_source'].choices = [('', '--- เลือกแหล่งเงิน ---')]
 
         self.fields['activity_report'].required = False
+        self.fields['budget_source'].required = False
         _apply_tailwind(self)
 
     def clean_receipt_file(self):
@@ -87,16 +96,32 @@ class ExpenseForm(forms.ModelForm):
         cleaned_data = super().clean()
         activity = cleaned_data.get('activity')
         amount = cleaned_data.get('amount')
+        budget_source = cleaned_data.get('budget_source')
 
         if activity and amount:
+            # ตรวจยอดคงเหลือรวมของกิจกรรม
+            # กรณี edit: ต้อง restore ยอดเงินเดิมของ expense นี้กลับก่อน
+            # ไม่ว่าจะ pending หรือ approved
             remaining = activity.remaining_budget
-            if self.instance.pk and self.instance.status == 'pending':
+            if self.instance.pk:
                 remaining += self.instance.amount
             if amount > remaining:
                 raise ValidationError(
                     f'จำนวนเงินเกินงบประมาณคงเหลือของกิจกรรม '
                     f'(คงเหลือ {remaining:,.2f} บาท)'
                 )
+
+            # ตรวจยอดคงเหลือแยกตามแหล่งเงิน
+            if budget_source:
+                project = activity.project
+                exclude_pk = self.instance.pk if self.instance.pk and self.instance.status == 'approved' else None
+                remaining_source = project.remaining_by_source(budget_source, exclude_expense_pk=exclude_pk)
+                source_label = dict(SOURCE_CHOICES).get(budget_source, budget_source)
+                if amount > remaining_source:
+                    raise ValidationError(
+                        f'จำนวนเงินเกินงบ{source_label}คงเหลือของโครงการ '
+                        f'(คงเหลือ {remaining_source:,.2f} บาท)'
+                    )
         return cleaned_data
 
 

@@ -87,12 +87,59 @@
     </div>
 </div>
 
-<!-- Overall Budget Progress -->
+<!-- Budget Sources + Progress -->
 <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 mb-6">
-    <div class="flex justify-between items-center mb-2">
-        <span class="text-sm font-medium text-gray-700">สัดส่วนการใช้งบประมาณ</span>
+    <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold text-indigo-700">แหล่งเงิน</span>
+        <span class="text-xs text-gray-400">สัดส่วนการใช้งบประมาณรวม</span>
     </div>
-    {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+    <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <!-- Source columns -->
+        <div class="border-l-2 border-indigo-200 pl-4 border-r-2 border-r-indigo-200 pr-4 flex-shrink-0">
+            <table class="text-xs border-collapse">
+                <thead>
+                    <tr class="text-indigo-600 border-b border-indigo-200">
+                        <th class="pb-1 pr-4 text-left font-semibold">แหล่งเงิน</th>
+                        <th class="pb-1 pr-3 text-right font-semibold">จัดสรร</th>
+                        <th class="pb-1 pr-3 text-right font-semibold">ใช้ไป</th>
+                        <th class="pb-1 text-right font-semibold">เหลือ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in source_summary %}
+                <tr class="border-b border-indigo-50">
+                    <td class="py-1 pr-4 font-medium text-gray-700">{{ s.label }}</td>
+                    <td class="py-1 pr-3 text-right text-gray-600">{{ s.amount|floatformat:2|intcomma }}</td>
+                    <td class="py-1 pr-3 text-right text-orange-600">{{ s.spent|floatformat:2|intcomma }}</td>
+                    <td class="py-1 text-right font-semibold {% if s.remaining <= 0 %}text-red-600{% else %}text-green-700{% endif %}">{{ s.remaining|floatformat:2|intcomma }}</td>
+                </tr>
+                {% endfor %}
+                {% if untagged_spent > 0 %}
+                <tr class="bg-yellow-50">
+                    <td class="py-1 pr-4 text-yellow-700 italic">ยังไม่ระบุแหล่ง</td>
+                    <td class="py-1 pr-3 text-right text-gray-400">—</td>
+                    <td class="py-1 pr-3 text-right text-yellow-600">{{ untagged_spent|floatformat:2|intcomma }}</td>
+                    <td class="py-1 text-right text-gray-400">—</td>
+                </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Progress bar -->
+        <div class="flex-1 w-full">
+            <div class="flex items-center gap-3">
+                <div class="flex-1">
+                    {% include "components/_budget_bar.html" with percent=project.budget_usage_percent %}
+                </div>
+                <span class="text-sm font-bold whitespace-nowrap
+                    {% if project.budget_usage_percent >= 90 %}text-red-600
+                    {% elif project.budget_usage_percent >= 70 %}text-yellow-600
+                    {% else %}text-green-600{% endif %}">
+                    {{ project.budget_usage_percent|floatformat:1 }}%
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% if project.description or project.document %}
@@ -156,13 +203,21 @@
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10">ลำดับ</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อกิจกรรม</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ระยะเวลา</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">งบจัดสรร</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ใช้ไป / สัดส่วน</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ผู้รับผิดชอบ / แจ้งเตือน</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10" rowspan="2">ลำดับ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ชื่อกิจกรรม</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap" rowspan="2">ระยะเวลา</th>
+                    <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-indigo-700 uppercase bg-indigo-50 border-l-2 border-r-2 border-indigo-200">แหล่งเงิน (จัดสรร)</th>
+                    <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-emerald-700 uppercase bg-emerald-50 border-l-2 border-r-2 border-emerald-300">งบประมาณ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ผู้รับผิดชอบ</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" rowspan="2">สถานะ</th>
+                </tr>
+                <tr>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 border-l-2 border-indigo-200 whitespace-nowrap">เงินแผ่นดิน</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 whitespace-nowrap">เงินสะสม</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-indigo-600 bg-indigo-50 border-r-2 border-indigo-200 whitespace-nowrap">เงินรายได้</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-emerald-700 bg-emerald-50 border-l-2 border-emerald-300 whitespace-nowrap">งบจัดสรร</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-emerald-700 bg-emerald-50 whitespace-nowrap">ใช้ไป / เหลือ</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-emerald-700 bg-emerald-50 border-r-2 border-emerald-300 whitespace-nowrap">%</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -177,48 +232,47 @@
                         <div class="text-gray-400">ถึง</div>
                         <div>{{ activity.end_date|thaidate }}</div>
                     </td>
+                    <!-- แหล่งเงิน (งบที่จัดสรรต่อแหล่ง) -->
+                    <td class="px-4 py-4 text-xs text-right whitespace-nowrap bg-indigo-50/30 border-l-2 border-indigo-200 {% if activity.budget_government %}text-gray-700 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_government %}{{ activity.budget_government|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-4 text-xs text-right whitespace-nowrap bg-indigo-50/30 {% if activity.budget_accumulated %}text-gray-700 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_accumulated %}{{ activity.budget_accumulated|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-4 text-xs text-right whitespace-nowrap bg-indigo-50/30 border-r-2 border-indigo-200 {% if activity.budget_revenue %}text-gray-700 font-medium{% else %}text-gray-300{% endif %}">
+                        {% if activity.budget_revenue %}{{ activity.budget_revenue|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </td>
+                    <!-- งบประมาณ -->
                     {% if activity.no_budget %}
-                    <td class="px-4 py-4 text-sm text-center">
+                    <td class="px-4 py-4 text-sm text-center bg-emerald-50/30 border-l-2 border-emerald-300">
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">ไม่ใช้งบประมาณ</span>
                     </td>
-                    <td class="px-4 py-4 text-sm text-center text-gray-300">—</td>
+                    <td class="px-4 py-4 text-sm text-center text-gray-300 bg-emerald-50/30">—</td>
+                    <td class="px-4 py-4 text-sm text-center text-gray-300 bg-emerald-50/30 border-r-2 border-emerald-300">—</td>
                     {% else %}
-                    <td class="px-4 py-4 text-sm text-right text-gray-800 whitespace-nowrap">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
-                    <td class="px-4 py-4 text-sm text-right">
-                        <div class="text-gray-800 whitespace-nowrap">{{ activity.total_spent|floatformat:2|intcomma }}</div>
-                        <div class="w-28 mt-1 ml-auto">
-                            {% include "components/_budget_bar.html" with percent=activity.budget_usage_percent %}
-                        </div>
+                    <td class="px-4 py-4 text-sm text-right text-gray-800 whitespace-nowrap bg-emerald-50/30 border-l-2 border-emerald-300">{{ activity.allocated_budget|floatformat:2|intcomma }}</td>
+                    <td class="px-4 py-4 text-xs text-right whitespace-nowrap bg-emerald-50/30">
+                        <div class="text-gray-700">{{ activity.total_spent|floatformat:2|intcomma }}</div>
+                        <div class="text-gray-300">—</div>
+                        <div class="{% if activity.remaining_budget <= 0 %}text-red-600{% else %}text-green-700{% endif %} font-medium">{{ activity.remaining_budget|floatformat:2|intcomma }}</div>
+                    </td>
+                    <td class="px-4 py-4 text-center whitespace-nowrap bg-emerald-50/30 border-r-2 border-emerald-300">
+                        <span class="text-sm font-semibold
+                            {% if activity.budget_usage_percent >= 90 %}text-red-600
+                            {% elif activity.budget_usage_percent >= 70 %}text-yellow-600
+                            {% else %}text-green-600{% endif %}">
+                            {{ activity.budget_usage_percent|floatformat:1 }}%
+                        </span>
                     </td>
                     {% endif %}
                     <td class="px-4 py-4 text-sm">
-                        {% with resp=activity.responsible_persons.all notify=activity.notify_persons.all %}
-                        <div class="space-y-1.5">
-                            {% if resp %}
-                            <div class="flex flex-wrap items-start gap-1">
-                                <span class="text-xs text-gray-400 mt-0.5 shrink-0">รับผิดชอบ:</span>
-                                <div class="flex flex-wrap gap-1">
-                                {% for p in resp %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">{{ p.get_full_name|default:p.username }}</span>
-                                {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% if notify %}
-                            <div class="flex flex-wrap items-start gap-1">
-                                <span class="text-xs text-gray-400 mt-0.5 shrink-0">แจ้งเตือน:</span>
-                                <div class="flex flex-wrap gap-1">
-                                {% for p in notify %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">{{ p.get_full_name|default:p.username }}</span>
-                                {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% if not resp and not notify %}
+                        <div class="flex flex-wrap gap-1">
+                        {% for p in activity.responsible_persons.all %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">{{ p.get_full_name|default:p.username }}</span>
+                        {% empty %}
                             <span class="text-xs text-gray-300">-</span>
-                            {% endif %}
+                        {% endfor %}
                         </div>
-                        {% endwith %}
                     </td>
                     <td class="px-4 py-4 text-center">
                         {% if activity.status == 'pending' %}
@@ -234,7 +288,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">ยังไม่มีกิจกรรม</td>
+                    <td colspan="9" class="px-6 py-8 text-center text-gray-500">ยังไม่มีกิจกรรม</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -48,14 +48,20 @@ def expense_create(request, activity_pk=None):
             projects = get_projects_for_user(request.user)
             if not projects.filter(pk=expense.activity.project_id).exists():
                 raise PermissionDenied
+            # planner/admin บันทึกแล้วถือว่าผ่านการอนุมัติจากแผนและการเงินแล้ว
+            role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+            if role in ('planner', 'admin'):
+                expense.status = 'approved'
+                expense.approved_by = request.user
+                expense.approved_at = timezone.now()
             expense.save()
             log_action(
                 actor=request.user, action='EXPENSE_CREATE',
                 target_repr=f'{expense.activity.project.project_code} / {expense.activity.name} — {expense.description}',
-                detail=f'จำนวน: {expense.amount} บาท',
+                detail=f'จำนวน: {expense.amount} บาท' + (' (อนุมัติอัตโนมัติ)' if role in ('planner', 'admin') else ''),
                 ip_address=get_client_ip(request),
             )
-            messages.success(request, 'บันทึกรายการเบิกจ่ายสำเร็จ')
+            messages.success(request, 'บันทึกรายการเบิกจ่ายสำเร็จ' + (' — อนุมัติอัตโนมัติแล้ว' if role in ('planner', 'admin') else ''))
             return redirect('projects:activity_detail',
                             project_pk=expense.activity.project_id,
                             pk=expense.activity_id)
@@ -66,15 +72,39 @@ def expense_create(request, activity_pk=None):
         form = ExpenseForm(initial=initial, activity_pk=activity_pk)
 
     projects = get_projects_for_user(request.user)
+    from django.db.models import FloatField
+    from django.db.models.functions import Cast
     from apps.projects.models import Activity
     form.fields['activity'].queryset = Activity.objects.filter(
         project__in=projects,
         status__in=['pending', 'in_progress'],
-    )
+    ).annotate(
+        project_code_num=Cast('project__project_code', FloatField())
+    ).order_by('project_code_num', 'project__project_code', 'activity_number')
+
+    # สรุปแหล่งเงินของโครงการที่กิจกรรมนี้สังกัด
+    source_summary = []
+    if activity_pk:
+        from apps.projects.models import Activity as Act
+        try:
+            act = Act.objects.select_related('project').get(pk=activity_pk)
+            for source in act.project.budget_sources.all():
+                spent = act.project.spent_by_source(source.source_type)
+                source_summary.append({
+                    'source_type': source.source_type,
+                    'label': source.get_source_type_display(),
+                    'amount': source.amount,
+                    'spent': spent,
+                    'remaining': source.amount - spent,
+                })
+        except Act.DoesNotExist:
+            pass
 
     return render(request, 'budget/expense_form.html', {
         'form': form,
         'activity_pk': activity_pk,
+        'locked_activity': act if activity_pk and source_summary else None,
+        'source_summary': source_summary,
         'title': 'บันทึกรายการเบิกจ่าย',
     })
 
@@ -82,11 +112,15 @@ def expense_create(request, activity_pk=None):
 @login_required
 def expense_edit(request, pk):
     expense = get_object_or_404(Expense, pk=pk)
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
 
-    if expense.status != 'pending':
+    # planner/admin แก้ได้ทุกสถานะ, staff/head แก้ได้เฉพาะ pending ของตัวเอง
+    if role in ('planner', 'admin'):
+        pass  # อนุญาต
+    elif expense.status != 'pending':
         messages.error(request, 'ไม่สามารถแก้ไขรายการที่ได้รับการอนุมัติหรือไม่อนุมัติแล้ว')
         return redirect('budget:expense_list')
-    if expense.created_by != request.user:
+    elif expense.created_by != request.user:
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -107,11 +141,15 @@ def expense_edit(request, pk):
         form = ExpenseForm(instance=expense)
 
     projects = get_projects_for_user(request.user)
+    from django.db.models import FloatField
+    from django.db.models.functions import Cast
     from apps.projects.models import Activity, ActivityReport
     form.fields['activity'].queryset = Activity.objects.filter(
         project__in=projects,
         status__in=['pending', 'in_progress'],
-    )
+    ).annotate(
+        project_code_num=Cast('project__project_code', FloatField())
+    ).order_by('project_code_num', 'project__project_code', 'activity_number')
     form.fields['activity_report'].queryset = ActivityReport.objects.filter(
         activity=expense.activity
     )
@@ -119,9 +157,25 @@ def expense_edit(request, pk):
         lambda r: f'ครั้งที่ {r.round_number}: {r.title} ({r.date.strftime("%d/%m/%Y")})'
     )
 
+    # source_summary สำหรับ info box
+    source_summary = []
+    project = expense.activity.project
+    for source in project.budget_sources.all():
+        spent = project.spent_by_source(source.source_type, exclude_expense_pk=expense.pk if expense.status == 'approved' else None)
+        source_summary.append({
+            'source_type': source.source_type,
+            'label': source.get_source_type_display(),
+            'amount': source.amount,
+            'spent': spent,
+            'remaining': source.amount - spent,
+        })
+
     return render(request, 'budget/expense_form.html', {
         'form': form,
         'expense': expense,
+        'locked_activity': expense.activity,
+        'source_summary': source_summary,
+        'activity_pk': expense.activity_id,
         'title': 'แก้ไขรายการเบิกจ่าย',
     })
 

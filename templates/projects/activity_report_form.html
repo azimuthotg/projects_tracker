@@ -44,6 +44,54 @@
         </div>
         {% endif %}
 
+        <!-- ผูกรายการเบิกจ่าย -->
+        {% if linked_expenses or linkable_expenses %}
+        <div class="pt-4 border-t border-gray-100">
+            <p class="text-sm font-semibold text-gray-700 mb-1">รายการเบิกจ่ายที่เกี่ยวข้อง</p>
+            <p class="text-xs text-gray-400 mb-3">เลือกรายการเบิกจ่ายที่เกิดขึ้นในรายงานครั้งนี้</p>
+            <div class="space-y-2">
+                {% for expense in linked_expenses %}
+                <label class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                    <input type="checkbox" name="link_expenses" value="{{ expense.pk }}"
+                           checked
+                           class="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 flex-shrink-0">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">{{ expense.description }}</p>
+                            <p class="text-sm font-bold text-blue-800 whitespace-nowrap">{{ expense.amount|floatformat:2 }} บาท</p>
+                        </div>
+                        <div class="flex items-center gap-3 mt-0.5">
+                            <p class="text-xs text-gray-500">{{ expense.expense_date|date:"d/m/Y" }}</p>
+                            {% if expense.receipt_number %}<p class="text-xs text-gray-400">เลขที่ {{ expense.receipt_number }}</p>{% endif %}
+                            {% if expense.budget_source %}<span class="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">{{ expense.get_budget_source_display }}</span>{% endif %}
+                        </div>
+                    </div>
+                </label>
+                {% endfor %}
+                {% for expense in linkable_expenses %}
+                <label class="flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                    <input type="checkbox" name="link_expenses" value="{{ expense.pk }}"
+                           class="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 flex-shrink-0">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">{{ expense.description }}</p>
+                            <p class="text-sm font-bold text-gray-700 whitespace-nowrap">{{ expense.amount|floatformat:2 }} บาท</p>
+                        </div>
+                        <div class="flex items-center gap-3 mt-0.5">
+                            <p class="text-xs text-gray-500">{{ expense.expense_date|date:"d/m/Y" }}</p>
+                            {% if expense.receipt_number %}<p class="text-xs text-gray-400">เลขที่ {{ expense.receipt_number }}</p>{% endif %}
+                            {% if expense.budget_source %}<span class="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">{{ expense.get_budget_source_display }}</span>{% endif %}
+                        </div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            {% if not linked_expenses and not linkable_expenses %}
+            <p class="text-sm text-gray-400 italic">ไม่มีรายการเบิกจ่ายที่พร้อมผูก</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <div class="flex gap-3 pt-4 border-t border-gray-100">
             <button type="submit" class="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm font-medium">
                 {% if report %}บันทึกการแก้ไข{% else %}บันทึกรายงาน{% endif %}

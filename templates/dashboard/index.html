@@ -92,6 +92,168 @@
 </div>
 {% endif %}
 
+{% if attention %}
+{% with oc=attention.overdue_count bc=attention.budget_full_count nc=attention.no_report_count sc=attention.no_source_count %}
+{% if oc or bc or nc or sc %}
+<!-- ต้องติดตาม -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 mb-3">
+        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <h3 class="text-base font-semibold text-gray-800">รายการที่ต้องติดตาม</h3>
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold">{{ oc|add:bc|add:nc|add:sc }}</span>
+    </div>
+
+    <!-- summary counters -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-red-500 font-medium">เลย deadline แล้ว</p>
+                <p class="text-2xl font-bold text-red-700">{{ oc }}</p>
+                <p class="text-xs text-red-400">กิจกรรม</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <div class="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-orange-500 font-medium">งบเต็มยังไม่ปิด</p>
+                <p class="text-2xl font-bold text-orange-700">{{ bc }}</p>
+                <p class="text-xs text-orange-400">กิจกรรม</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+            <div class="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-yellow-600 font-medium">ไม่มีรายงานรองรับ</p>
+                <p class="text-2xl font-bold text-yellow-700">{{ nc }}</p>
+                <p class="text-xs text-yellow-500">กิจกรรม</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
+            <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5l4.586 4.586a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-4-4a2 2 0 010-2.828L7 7z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-purple-600 font-medium">ไม่ระบุแหล่งเงิน</p>
+                <p class="text-2xl font-bold text-purple-700">{{ sc }}</p>
+                <p class="text-xs text-purple-400">กิจกรรม</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- drill-down lists (always render all 4 to align with counter cards above) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- overdue -->
+        <div class="bg-white rounded-xl border border-red-200 overflow-hidden flex flex-col">
+            <div class="px-4 py-2.5 bg-red-50 border-b border-red-200 flex items-center justify-between flex-shrink-0">
+                <p class="text-xs font-semibold text-red-700">เลย deadline แล้ว</p>
+                {% if oc %}<span class="text-xs font-bold text-red-500">{{ oc }}</span>{% endif %}
+            </div>
+            {% if attention.overdue_acts %}
+            <div class="divide-y divide-gray-100">
+                {% for act in attention.overdue_acts %}
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-red-50/50 transition-colors group">
+                    <svg class="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400">{{ act.project.project_code }} · สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex-1 flex items-center justify-center px-4 py-6">
+                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- budget full -->
+        <div class="bg-white rounded-xl border border-orange-200 overflow-hidden flex flex-col">
+            <div class="px-4 py-2.5 bg-orange-50 border-b border-orange-200 flex items-center justify-between flex-shrink-0">
+                <p class="text-xs font-semibold text-orange-700">งบเต็มยังไม่ปิดกิจกรรม</p>
+                {% if bc %}<span class="text-xs font-bold text-orange-500">{{ bc }}</span>{% endif %}
+            </div>
+            {% if attention.budget_full_acts %}
+            <div class="divide-y divide-gray-100">
+                {% for act in attention.budget_full_acts %}
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-orange-50/50 transition-colors group">
+                    <svg class="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400">{{ act.project.project_code }} · {{ act.get_status_display }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex-1 flex items-center justify-center px-4 py-6">
+                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- no report -->
+        <div class="bg-white rounded-xl border border-yellow-200 overflow-hidden flex flex-col">
+            <div class="px-4 py-2.5 bg-yellow-50 border-b border-yellow-200 flex items-center justify-between flex-shrink-0">
+                <p class="text-xs font-semibold text-yellow-700">มีเบิกจ่ายแต่ไม่มีรายงาน</p>
+                {% if nc %}<span class="text-xs font-bold text-yellow-600">{{ nc }}</span>{% endif %}
+            </div>
+            {% if attention.no_report_acts %}
+            <div class="divide-y divide-gray-100">
+                {% for act in attention.no_report_acts %}
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-yellow-50/50 transition-colors group">
+                    <svg class="w-3.5 h-3.5 text-yellow-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400">{{ act.project.project_code }}{% if act.unlinked_expense_count %} · {{ act.unlinked_expense_count }} รายการ{% endif %}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex-1 flex items-center justify-center px-4 py-6">
+                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- no budget source -->
+        <div class="bg-white rounded-xl border border-purple-200 overflow-hidden flex flex-col">
+            <div class="px-4 py-2.5 bg-purple-50 border-b border-purple-200 flex items-center justify-between flex-shrink-0">
+                <p class="text-xs font-semibold text-purple-700">ยังไม่ระบุแหล่งเงิน</p>
+                {% if sc %}<span class="text-xs font-bold text-purple-500">{{ sc }}</span>{% endif %}
+            </div>
+            {% if attention.no_source_acts %}
+            <div class="divide-y divide-gray-100">
+                {% for act in attention.no_source_acts %}
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-purple-50/50 transition-colors group">
+                    <svg class="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400">{{ act.project.project_code }}{% if act.no_source_expense_count %} · {{ act.no_source_expense_count }} รายการ{% endif %}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex-1 flex items-center justify-center px-4 py-6">
+                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Active Projects -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200">

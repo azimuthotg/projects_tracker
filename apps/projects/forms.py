@@ -98,8 +98,8 @@ class ProjectForm(forms.ModelForm):
             'status', 'document', 'responsible_persons', 'notify_persons',
         ]
         widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'end_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'description': forms.Textarea(attrs={'rows': 3}),
             'responsible_persons': forms.CheckboxSelectMultiple(),
             'notify_persons': forms.CheckboxSelectMultiple(),
@@ -161,8 +161,8 @@ class ActivityForm(forms.ModelForm):
             'responsible_persons', 'notify_persons',
         ]
         widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'end_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'description': forms.Textarea(attrs={'rows': 3}),
             'responsible_persons': forms.CheckboxSelectMultiple(),
             'notify_persons': forms.CheckboxSelectMultiple(),
@@ -258,7 +258,7 @@ class ActivityReportForm(forms.ModelForm):
         model = ActivityReport
         fields = ['title', 'date', 'description', 'document']
         widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
+            'date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'description': forms.Textarea(attrs={'rows': 4}),
             'document': forms.ClearableFileInput(attrs={'accept': 'application/pdf,image/jpeg,image/png'}),
         }

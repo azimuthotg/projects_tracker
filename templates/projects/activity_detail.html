@@ -659,11 +659,26 @@
             img.style.objectFit = 'contain';
             content.appendChild(img);
         } else {
-            var iframe = document.createElement('iframe');
-            iframe.src = url + '#toolbar=1&navpanes=0&view=FitH';
-            iframe.className = 'w-full rounded-xl border-0';
-            iframe.style.height = '75vh';
-            content.appendChild(iframe);
+            // Fetch as blob to bypass X-Frame-Options header on same-origin files
+            content.innerHTML = '<div class="flex flex-col items-center gap-3 text-gray-400"><svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg><span class="text-sm">กำลังโหลด...</span></div>';
+            fetch(url)
+                .then(function(r) {
+                    if (!r.ok) throw new Error('fetch failed');
+                    return r.blob();
+                })
+                .then(function(blob) {
+                    var blobUrl = URL.createObjectURL(blob);
+                    content.innerHTML = '';
+                    var iframe = document.createElement('iframe');
+                    iframe.src = blobUrl;
+                    iframe.className = 'w-full rounded-xl border-0';
+                    iframe.style.height = '75vh';
+                    iframe.dataset.blobUrl = blobUrl;
+                    content.appendChild(iframe);
+                })
+                .catch(function() {
+                    content.innerHTML = '<div class="flex flex-col items-center gap-3 text-gray-400 py-8"><svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-sm">ไม่สามารถโหลดไฟล์ได้</p><a href="' + url + '" target="_blank" class="text-sm text-blue-700 hover:underline">เปิดในแท็บใหม่แทน</a></div>';
+                });
         }
 
         modal.classList.remove('hidden');
@@ -675,7 +690,12 @@
         var modal = document.getElementById('filePreviewModal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        document.getElementById('previewModalContent').innerHTML = '';
+        // Revoke any blob URLs to free memory
+        var content = document.getElementById('previewModalContent');
+        content.querySelectorAll('[data-blob-url]').forEach(function(el) {
+            URL.revokeObjectURL(el.dataset.blobUrl);
+        });
+        content.innerHTML = '';
         document.body.style.overflow = '';
     };
 

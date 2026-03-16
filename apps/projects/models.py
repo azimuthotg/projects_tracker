@@ -191,6 +191,16 @@ class Project(models.Model):
             return float(self.total_spent / self.total_budget * 100)
         return 0
 
+    @property
+    def document_exists(self):
+        if not self.document:
+            return False
+        import os
+        try:
+            return os.path.exists(self.document.path)
+        except Exception:
+            return False
+
 
 class ProjectBudgetSource(models.Model):
     """แหล่งเงินงบประมาณของโครงการ (แผ่นดิน / สะสม / รายได้)"""

@@ -56,14 +56,13 @@
         <table class="w-full" style="min-width:900px;table-layout:fixed">
             <colgroup>
                 <col style="width:110px">  <!-- รหัส -->
-                <col>                       <!-- ชื่อ (flex) -->
+                <col>                       <!-- ชื่อ + ผู้รับผิดชอบ (flex) -->
                 <col style="width:110px">  <!-- เงินแผ่นดิน -->
                 <col style="width:100px">  <!-- เงินสะสม -->
                 <col style="width:100px">  <!-- เงินรายได้ -->
                 <col style="width:110px">  <!-- งบรวม -->
                 <col style="width:120px">  <!-- ใช้ไป/เหลือ -->
                 <col style="width:60px">   <!-- % -->
-                <col style="width:130px">  <!-- ผู้รับผิดชอบ -->
                 <col style="width:90px">   <!-- สถานะ -->
             </colgroup>
             <thead class="bg-gray-50">
@@ -72,7 +71,6 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ชื่อโครงการ / กิจกรรม</th>
                     <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-indigo-700 uppercase bg-indigo-50 border-l-2 border-r-2 border-indigo-200">แหล่งเงิน</th>
                     <th colspan="3" class="px-4 py-2 text-center text-xs font-semibold text-emerald-700 uppercase bg-emerald-50 border-l-2 border-r-2 border-emerald-300">งบประมาณ</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" rowspan="2">ผู้รับผิดชอบ</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" rowspan="2">สถานะ</th>
                 </tr>
                 <tr>
@@ -108,6 +106,11 @@
                     <td class="px-4 py-3 text-sm">
                         <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline block truncate">{{ project.name }}</a>
                         <p class="text-xs text-gray-400 mt-0.5 truncate">{{ project.fiscal_year }} · {{ project.department }}</p>
+                        {% if project.responsible_persons.exists %}
+                        <p class="text-xs text-gray-500 mt-0.5 truncate">
+                            <span class="text-gray-300 mr-1">&#128100;</span>{% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        {% endif %}
                     </td>
                     {% with src=project.budget_by_source %}
                     <td class="px-4 py-3 text-sm text-right whitespace-nowrap bg-indigo-50/40 border-l-2 border-indigo-200 {% if src.government %}text-gray-800 font-medium{% else %}text-gray-300{% endif %}">
@@ -134,9 +137,6 @@
                             {{ project.budget_usage_percent|floatformat:1 }}%
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-700 truncate">
-                        {% for p in project.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                    </td>
                     <td class="px-4 py-3 text-center">
                         {% if project.status == 'draft' %}
                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">{{ project.get_status_display }}</span>
@@ -162,6 +162,11 @@
                     </td>
                     <td class="px-4 py-2 text-xs">
                         <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline block truncate">{{ activity.name }}</a>
+                        {% if activity.responsible_persons.exists %}
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">
+                            <span class="text-gray-300 mr-0.5">&#128100;</span>{% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        {% endif %}
                     </td>
                     <!-- แหล่งเงินจัดสรรของกิจกรรม -->
                     <td class="px-4 py-2 text-xs text-right bg-indigo-50/20 border-l-2 border-indigo-200 {% if activity.budget_government %}text-gray-600 font-medium{% else %}text-gray-300{% endif %}">
@@ -189,9 +194,6 @@
                         </span>
                     </td>
                     {% endif %}
-                    <td class="px-4 py-2 text-xs text-gray-600 truncate">
-                        {% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                    </td>
                     <td class="px-4 py-2 text-center">
                         {% if activity.status == 'pending' %}
                         <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{{ activity.get_status_display }}</span>
@@ -207,7 +209,7 @@
                 {% endfor %}
                 {% empty %}
                 <tr>
-                    <td colspan="10" class="px-6 py-16 text-center">
+                    <td colspan="9" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center gap-3">
                             <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
                                 <svg class="w-8 h-8 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>

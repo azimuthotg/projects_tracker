@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard ผู้บริหาร{% endblock %}
+
+{% block extra_head %}
+<style>
+  .exec-bg { background: linear-gradient(135deg, #0f2d5e 0%, #0a1e3d 100%); }
+  .kpi-card { transition: transform 0.2s, box-shadow 0.2s; }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .bar-track { background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .bar-safe   { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .bar-warn   { background: linear-gradient(90deg, #f97316, #fb923c); }
+  .bar-danger { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .bar-gold   { background: linear-gradient(90deg, #c9a84c, #e8c96a); }
+  .risk-high   { background: rgba(239,68,68,0.2);  color: #f87171; }
+  .risk-medium { background: rgba(249,115,22,0.2); color: #fb923c; }
+  .risk-low    { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: #e2e8f0;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  }
+  .section-title::before {
+    content: ''; display: block; width: 3px; height: 16px;
+    background: #c9a84c; border-radius: 2px;
+  }
+  .mono { font-family: 'Courier New', monospace; }
+  .alert-item { border-left: 3px solid transparent; padding: 10px 12px; border-radius: 6px; }
+  .alert-danger  { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+  .alert-warning { border-color: #f97316; background: rgba(249,115,22,0.08); }
+  .alert-purple  { border-color: #a78bfa; background: rgba(167,139,250,0.08); }
+  .alert-blue    { border-color: #60a5fa; background: rgba(96,165,250,0.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exec-bg min-h-screen -m-6 p-6">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs text-yellow-400 font-mono tracking-widest uppercase">Executive Dashboard</span>
+        <span class="flex items-center gap-1 text-xs text-green-400 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block"></span> LIVE
+        </span>
+      </div>
+      <h1 class="text-2xl font-bold text-white">ภาพรวมโครงการและงบประมาณ</h1>
+      <p class="text-sm text-blue-200 mt-0.5">สำนักวิทยบริการ มหาวิทยาลัยนครพนม
+        {% if fiscal_year %} · ปีงบประมาณ พ.ศ. {{ fiscal_year.year }}{% endif %}
+      </p>
+    </div>
+    <div class="text-right">
+      <div class="text-xs text-blue-300 font-mono">{{ today|date:"d/m/Y" }}</div>
+      {% if fiscal_year %}
+      <div class="inline-block mt-1 text-xs bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 px-3 py-1 rounded-full font-mono">
+        ปีงบ {{ fiscal_year.year }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <!-- โครงการทั้งหมด -->
+    <div class="kpi-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 to-transparent"></div>
+      <div class="text-xs text-blue-300 mb-2">📋 โครงการทั้งหมด</div>
+      <div class="text-3xl font-bold text-white mono">{{ total_projects }}</div>
+      <div class="text-xs text-blue-400 mt-1">{{ active_projects }} กำลังดำเนินการ</div>
+    </div>
+
+    <!-- งบประมาณรวม -->
+    <div class="kpi-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-yellow-400 to-transparent"></div>
+      <div class="text-xs text-blue-300 mb-2">💰 งบประมาณรวม</div>
+      <div class="text-2xl font-bold text-yellow-300 mono">{{ total_budget|floatformat:0|intcomma }}</div>
+      <div class="text-xs text-blue-400 mt-1">บาท</div>
+    </div>
+
+    <!-- ใช้ไปแล้ว -->
+    <div class="kpi-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-400 to-transparent"></div>
+      <div class="text-xs text-blue-300 mb-2">📤 ใช้ไปแล้ว</div>
+      <div class="text-2xl font-bold text-orange-300 mono">{{ total_spent|floatformat:0|intcomma }}</div>
+      <div class="text-xs text-blue-400 mt-1">{{ budget_pct }}% ของงบทั้งหมด</div>
+    </div>
+
+    <!-- คงเหลือ -->
+    <div class="kpi-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-400 to-transparent"></div>
+      <div class="text-xs text-blue-300 mb-2">🏦 งบคงเหลือ</div>
+      <div class="text-2xl font-bold text-green-300 mono">{{ remaining|floatformat:0|intcomma }}</div>
+      <div class="text-xs text-blue-400 mt-1">{{ remaining|floatformat:0|intcomma }} บาท</div>
+    </div>
+
+    <!-- แจ้งเตือน -->
+    <div class="kpi-card bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-400 to-transparent"></div>
+      <div class="text-xs text-blue-300 mb-2">⚠️ ต้องติดตาม</div>
+      {% with total_alerts=overdue_count|add:no_report_count|add:no_source_count %}
+      <div class="text-3xl font-bold {% if total_alerts > 0 %}text-red-300{% else %}text-green-300{% endif %} mono">{{ total_alerts }}</div>
+      <div class="text-xs text-blue-400 mt-1">รายการที่ต้องดำเนินการ</div>
+      {% endwith %}
+    </div>
+  </div>
+
+  <!-- BUDGET PROGRESS BAR OVERALL -->
+  <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-sm text-white font-medium">ภาพรวมงบประมาณปี</span>
+      <span class="text-sm font-bold mono {% if budget_pct >= 80 %}text-red-300{% elif budget_pct >= 50 %}text-orange-300{% else %}text-green-300{% endif %}">
+        {{ total_spent|floatformat:0|intcomma }} / {{ total_budget|floatformat:0|intcomma }} บาท ({{ budget_pct }}%)
+      </span>
+    </div>
+    <div class="bar-track h-3">
+      <div class="bar-fill {% if budget_pct >= 80 %}bar-danger{% elif budget_pct >= 50 %}bar-warn{% else %}bar-safe{% endif %}"
+           style="width: {{ budget_pct }}%"></div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+    <!-- DEPT BUDGET (2 cols) -->
+    <div class="lg:col-span-2 bg-white/5 border border-white/10 rounded-xl p-5">
+      <div class="section-title">การใช้งบประมาณตามแผนก</div>
+
+      {% if dept_stats %}
+        {% for d in dept_stats %}
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-sm text-white">{{ d.dept.name }}</span>
+            <div class="flex items-center gap-3 text-xs font-mono">
+              <span class="text-blue-300">{{ d.spent|floatformat:0|intcomma }} / {{ d.budget|floatformat:0|intcomma }}</span>
+              <span class="font-bold {% if d.pct >= 80 %}text-red-300{% elif d.pct >= 50 %}text-orange-300{% else %}text-green-300{% endif %}">
+                {{ d.pct }}%
+              </span>
+            </div>
+          </div>
+          <div class="bar-track h-2">
+            <div class="bar-fill {% if d.pct >= 80 %}bar-danger{% elif d.pct >= 50 %}bar-warn{% else %}bar-safe{% endif %}"
+                 style="width: {{ d.pct }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-blue-300 text-sm">ไม่มีข้อมูลแผนก</p>
+      {% endif %}
+
+      <!-- Budget by source -->
+      <div class="mt-4 pt-4 border-t border-white/10">
+        <div class="text-xs text-blue-400 mb-3">แหล่งเงิน</div>
+        <div class="grid grid-cols-4 gap-3">
+          <div class="bg-white/5 rounded-lg p-3 text-center">
+            <div class="text-xs text-blue-400 mb-1">เงินแผ่นดิน</div>
+            <div class="text-sm font-bold text-blue-300 mono">{{ source_map.government|default:0|floatformat:0|intcomma }}</div>
+          </div>
+          <div class="bg-white/5 rounded-lg p-3 text-center">
+            <div class="text-xs text-blue-400 mb-1">เงินสะสม</div>
+            <div class="text-sm font-bold text-yellow-300 mono">{{ source_map.accumulated|default:0|floatformat:0|intcomma }}</div>
+          </div>
+          <div class="bg-white/5 rounded-lg p-3 text-center">
+            <div class="text-xs text-blue-400 mb-1">เงินรายได้</div>
+            <div class="text-sm font-bold text-green-300 mono">{{ source_map.revenue|default:0|floatformat:0|intcomma }}</div>
+          </div>
+          <div class="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+            <div class="text-xs text-blue-400 mb-1">ไม่ระบุแหล่ง</div>
+            <div class="text-sm font-bold text-purple-300 mono">{{ no_source_count }} กจ.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS (1 col) -->
+    <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+      <div class="section-title flex items-center justify-between">
+        <span>แจ้งเตือนสำคัญ</span>
+        {% with total=overdue_count|add:no_report_count|add:no_source_count %}
+        {% if total > 0 %}
+        <span class="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full mono">{{ total }}</span>
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="space-y-2">
+        <div class="alert-item {% if overdue_count > 0 %}alert-danger{% else %}bg-white/5{% endif %}">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm font-medium text-white">🔴 เลย Deadline แล้ว</div>
+              <div class="text-xs text-blue-300 mt-0.5">กิจกรรมที่เลยกำหนดแต่ยังไม่เสร็จ</div>
+            </div>
+            <span class="text-sm font-bold mono {% if overdue_count > 0 %}text-red-300{% else %}text-green-300{% endif %}">{{ overdue_count }}</span>
+          </div>
+          {% if overdue_list %}
+          <div class="mt-2 space-y-1">
+            {% for act in overdue_list %}
+            <div class="text-xs text-blue-300 truncate">· {{ act.project.name }} / {{ act.name }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="alert-item {% if no_report_count > 0 %}alert-warning{% else %}bg-white/5{% endif %}">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm font-medium text-white">📄 ไม่มีรายงานรองรับ</div>
+              <div class="text-xs text-blue-300 mt-0.5">มีค่าใช้จ่ายแต่ยังไม่บันทึกรายงาน</div>
+            </div>
+            <span class="text-sm font-bold mono {% if no_report_count > 0 %}text-orange-300{% else %}text-green-300{% endif %}">{{ no_report_count }}</span>
+          </div>
+        </div>
+
+        <div class="alert-item {% if no_source_count > 0 %}alert-purple{% else %}bg-white/5{% endif %}">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm font-medium text-white">🟣 ยังไม่ระบุแหล่งเงิน</div>
+              <div class="text-xs text-blue-300 mt-0.5">กิจกรรมที่ยังไม่จัดประเภทงบ</div>
+            </div>
+            <span class="text-sm font-bold mono {% if no_source_count > 0 %}text-purple-300{% else %}text-green-300{% endif %}">{{ no_source_count }}</span>
+          </div>
+        </div>
+
+        <div class="alert-item {% if pending_expenses > 0 %}alert-blue{% else %}bg-white/5{% endif %}">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm font-medium text-white">⏳ รอการอนุมัติ</div>
+              <div class="text-xs text-blue-300 mt-0.5">รายการเบิกจ่ายที่ยังไม่อนุมัติ</div>
+            </div>
+            <span class="text-sm font-bold mono {% if pending_expenses > 0 %}text-blue-300{% else %}text-green-300{% endif %}">{{ pending_expenses }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- PROJECT STATUS + TOP USAGE -->
+    <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+      <div class="section-title">สถานะโครงการและการใช้งบสูงสุด</div>
+
+      <!-- Status badges -->
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="text-center bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <div class="text-xl font-bold text-blue-300 mono">{{ active_projects }}</div>
+          <div class="text-xs text-blue-400 mt-1">กำลังดำเนิน</div>
+        </div>
+        <div class="text-center bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+          <div class="text-xl font-bold text-yellow-300 mono">{{ not_started_projects }}</div>
+          <div class="text-xs text-blue-400 mt-1">รอดำเนินการ</div>
+        </div>
+        <div class="text-center bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+          <div class="text-xl font-bold text-green-300 mono">{{ completed_projects }}</div>
+          <div class="text-xs text-blue-400 mt-1">เสร็จสิ้น</div>
+        </div>
+        <div class="text-center bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+          <div class="text-xl font-bold text-red-300 mono">{{ draft_projects }}</div>
+          <div class="text-xs text-blue-400 mt-1">ร่าง/ยกเลิก</div>
+        </div>
+      </div>
+
+      <!-- Top projects by usage -->
+      <div class="text-xs text-blue-400 mb-3 font-medium">โครงการที่ใช้งบสูงสุด</div>
+      <div class="space-y-2">
+        {% for item in top_projects %}
+        <div class="flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs text-white truncate">{{ item.project.name }}</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="w-20 bar-track h-1.5">
+              <div class="bar-fill {% if item.pct >= 80 %}bar-danger{% elif item.pct >= 50 %}bar-warn{% else %}bar-safe{% endif %}"
+                   style="width: {{ item.pct }}%"></div>
+            </div>
+            <span class="text-xs font-bold mono w-10 text-right {% if item.pct >= 80 %}text-red-300{% elif item.pct >= 50 %}text-orange-300{% else %}text-green-300{% endif %}">
+              {{ item.pct }}%
+            </span>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-xs text-blue-400">ยังไม่มีการเบิกจ่าย</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- RECENT EXPENSES -->
+    <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+      <div class="section-title">รายการเบิกจ่ายล่าสุด</div>
+      <div class="space-y-2">
+        {% for exp in recent_expenses %}
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs text-white truncate">{{ exp.description }}</div>
+            <div class="text-xs text-blue-400 truncate">{{ exp.activity.project.name }}</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-xs font-bold mono
+              {% if exp.status == 'approved' %}text-green-300
+              {% elif exp.status == 'pending' %}text-yellow-300
+              {% else %}text-red-300{% endif %}">
+              {{ exp.amount|floatformat:0|intcomma }}
+            </div>
+            <div class="text-xs
+              {% if exp.status == 'approved' %}text-green-400
+              {% elif exp.status == 'pending' %}text-yellow-400
+              {% else %}text-red-400{% endif %}">
+              {% if exp.status == 'approved' %}อนุมัติ
+              {% elif exp.status == 'pending' %}รออนุมัติ
+              {% else %}ปฏิเสธ{% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-xs text-blue-400">ยังไม่มีรายการ</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

@@ -104,7 +104,7 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-sm">
-                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline block truncate">{{ project.name }}</a>
+                        <a href="{% url 'projects:project_detail' pk=project.pk %}" class="font-semibold text-gray-800 hover:text-blue-900 hover:underline block truncate" title="{{ project.name }}">{{ project.name }}</a>
                         <p class="text-xs text-gray-400 mt-0.5 truncate">{{ project.fiscal_year }} · {{ project.department }}</p>
                         {% if project.responsible_persons.exists %}
                         <p class="text-xs text-gray-500 mt-0.5 truncate">
@@ -164,7 +164,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-2 text-xs">
-                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline block truncate">{{ activity.name }}</a>
+                        <a href="{% url 'projects:activity_detail' project_pk=project.pk pk=activity.pk %}" class="text-blue-800 hover:underline block truncate" title="{{ activity.name }}">{{ activity.name }}</a>
                         {% if activity.responsible_persons.exists %}
                         <p class="text-xs text-gray-400 mt-0.5 truncate">
                             <span class="text-gray-300 mr-0.5">&#128100;</span>{% for p in activity.responsible_persons.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}

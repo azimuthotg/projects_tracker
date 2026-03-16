@@ -167,7 +167,7 @@
                         <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}</p>
                     </div>
                     <div class="text-right flex-shrink-0">
-                        <p class="text-xs font-semibold text-red-500">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs font-semibold text-red-500">สิ้นสุด {{ act.end_date|thaidate }}</p>
                         <p class="text-xs text-gray-400">{{ act.get_status_display }}</p>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -197,7 +197,7 @@
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-xs font-semibold text-orange-500">{{ act.get_status_display }}</p>
-                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|thaidate }}</p>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
@@ -226,7 +226,7 @@
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-xs font-semibold text-yellow-600">{{ act.get_status_display }}</p>
-                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|thaidate }}</p>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
@@ -255,7 +255,7 @@
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-xs font-semibold text-purple-500">{{ act.get_status_display }}</p>
-                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|thaidate }}</p>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
@@ -283,8 +283,8 @@
                         <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}</p>
                     </div>
                     <div class="text-right flex-shrink-0">
-                        <p class="text-xs font-semibold text-indigo-500">เริ่ม {{ act.start_date|date:"d/m/Y" }}</p>
-                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs font-semibold text-indigo-500">เริ่ม {{ act.start_date|thaidate }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|thaidate }}</p>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load form_tags %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -63,7 +64,7 @@
                             <p class="text-sm font-bold text-blue-800 whitespace-nowrap">{{ expense.amount|floatformat:2 }} บาท</p>
                         </div>
                         <div class="flex items-center gap-3 mt-0.5">
-                            <p class="text-xs text-gray-500">{{ expense.expense_date|date:"d/m/Y" }}</p>
+                            <p class="text-xs text-gray-500">{{ expense.expense_date|thaidate }}</p>
                             {% if expense.receipt_number %}<p class="text-xs text-gray-400">เลขที่ {{ expense.receipt_number }}</p>{% endif %}
                             {% if expense.budget_source %}<span class="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">{{ expense.get_budget_source_display }}</span>{% endif %}
                         </div>
@@ -80,7 +81,7 @@
                             <p class="text-sm font-bold text-gray-700 whitespace-nowrap">{{ expense.amount|floatformat:2 }} บาท</p>
                         </div>
                         <div class="flex items-center gap-3 mt-0.5">
-                            <p class="text-xs text-gray-500">{{ expense.expense_date|date:"d/m/Y" }}</p>
+                            <p class="text-xs text-gray-500">{{ expense.expense_date|thaidate }}</p>
                             {% if expense.receipt_number %}<p class="text-xs text-gray-400">เลขที่ {{ expense.receipt_number }}</p>{% endif %}
                             {% if expense.budget_source %}<span class="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">{{ expense.get_budget_source_display }}</span>{% endif %}
                         </div>

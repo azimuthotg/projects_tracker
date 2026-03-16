@@ -79,7 +79,7 @@ def index(request):
             overdue_acts = scoped.filter(
                 end_date__lt=today,
                 status__in=['pending', 'in_progress'],
-            ).select_related('project').order_by('end_date')[:8]
+            ).select_related('project').order_by('end_date')[:50]
 
             # 2. งบเต็มแต่ยังไม่ปิดกิจกรรม (annotate total_spent)
             budget_full_acts = scoped.filter(
@@ -90,7 +90,7 @@ def index(request):
                 ann_spent=Sum('expenses__amount', filter=Q(expenses__status='approved'))
             ).filter(
                 ann_spent__gte=F('allocated_budget')
-            ).select_related('project')[:8]
+            ).select_related('project')[:50]
 
             # 3. มี expense อนุมัติแล้ว แต่ไม่มีรายงานรองรับเลย
             no_report_acts = scoped.filter(
@@ -98,7 +98,7 @@ def index(request):
                 expenses__activity_report__isnull=True,
             ).exclude(
                 pk__in=ActivityReport.objects.values('activity_id')
-            ).distinct().select_related('project')[:8]
+            ).distinct().select_related('project')[:50]
 
             # unlinked expense ต่อ activity สำหรับ tooltip
             unlinked_counts = {
@@ -126,7 +126,7 @@ def index(request):
             no_source_acts = scoped.filter(
                 expenses__status__in=['pending', 'approved'],
                 expenses__budget_source='',
-            ).distinct().select_related('project')[:8]
+            ).distinct().select_related('project')[:50]
 
             no_source_counts = {
                 row['activity_id']: row['cnt']
@@ -144,7 +144,7 @@ def index(request):
                 start_date__lte=today,
                 end_date__gte=today,
                 status='pending',
-            ).select_related('project').order_by('start_date')[:8]
+            ).select_related('project').order_by('start_date')[:50]
 
             attention = {
                 'overdue_acts': overdue_acts,

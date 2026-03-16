@@ -97,193 +97,205 @@
 {% if oc or bc or nc or sc or nsc %}
 <!-- ต้องติดตาม -->
 <div class="mb-8">
-    <div class="flex items-center gap-2 mb-3">
+    <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <h3 class="text-base font-semibold text-gray-800">รายการที่ต้องติดตาม</h3>
-        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold">{{ oc|add:bc|add:nc|add:sc|add:nsc }}</span>
+        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">{{ oc|add:bc|add:nc|add:sc|add:nsc }}</span>
     </div>
 
-    <!-- summary counters -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
-        <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div>
-                <p class="text-xs text-red-500 font-medium">เลย deadline แล้ว</p>
-                <p class="text-2xl font-bold text-red-700">{{ oc }}</p>
-                <p class="text-xs text-red-400">กิจกรรม</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-            <div class="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div>
-                <p class="text-xs text-orange-500 font-medium">งบเต็มยังไม่ปิด</p>
-                <p class="text-2xl font-bold text-orange-700">{{ bc }}</p>
-                <p class="text-xs text-orange-400">กิจกรรม</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
-            <div class="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            </div>
-            <div>
-                <p class="text-xs text-yellow-600 font-medium">ไม่มีรายงานรองรับ</p>
-                <p class="text-2xl font-bold text-yellow-700">{{ nc }}</p>
-                <p class="text-xs text-yellow-500">กิจกรรม</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
-            <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5l4.586 4.586a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-4-4a2 2 0 010-2.828L7 7z"/></svg>
-            </div>
-            <div>
-                <p class="text-xs text-purple-600 font-medium">ไม่ระบุแหล่งเงิน</p>
-                <p class="text-2xl font-bold text-purple-700">{{ sc }}</p>
-                <p class="text-xs text-purple-400">กิจกรรม</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
-            <div class="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div>
-                <p class="text-xs text-indigo-600 font-medium">ถึงเวลาแต่ยังไม่เริ่ม</p>
-                <p class="text-2xl font-bold text-indigo-700">{{ nsc }}</p>
-                <p class="text-xs text-indigo-400">กิจกรรม</p>
-            </div>
-        </div>
+    <!-- Tab buttons -->
+    <div class="flex flex-wrap gap-2 mb-3">
+        <button type="button" data-attn-tab="overdue" data-count="{{ oc }}"
+                class="attn-tab-btn flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
+                       {% if oc > 0 %}border-red-200 bg-red-50 text-red-700 hover:bg-red-100{% else %}border-gray-200 bg-white text-gray-400{% endif %}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            เลย deadline
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                         {% if oc > 0 %}bg-red-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %}">{{ oc }}</span>
+        </button>
+        <button type="button" data-attn-tab="budget_full" data-count="{{ bc }}"
+                class="attn-tab-btn flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
+                       {% if bc > 0 %}border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100{% else %}border-gray-200 bg-white text-gray-400{% endif %}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            งบเต็มยังไม่ปิด
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                         {% if bc > 0 %}bg-orange-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %}">{{ bc }}</span>
+        </button>
+        <button type="button" data-attn-tab="no_report" data-count="{{ nc }}"
+                class="attn-tab-btn flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
+                       {% if nc > 0 %}border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100{% else %}border-gray-200 bg-white text-gray-400{% endif %}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            ไม่มีรายงาน
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                         {% if nc > 0 %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %}">{{ nc }}</span>
+        </button>
+        <button type="button" data-attn-tab="no_source" data-count="{{ sc }}"
+                class="attn-tab-btn flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
+                       {% if sc > 0 %}border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100{% else %}border-gray-200 bg-white text-gray-400{% endif %}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5l4.586 4.586a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-4-4a2 2 0 010-2.828L7 7z"/></svg>
+            ไม่ระบุแหล่งเงิน
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                         {% if sc > 0 %}bg-purple-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %}">{{ sc }}</span>
+        </button>
+        <button type="button" data-attn-tab="not_started" data-count="{{ nsc }}"
+                class="attn-tab-btn flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
+                       {% if nsc > 0 %}border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100{% else %}border-gray-200 bg-white text-gray-400{% endif %}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            ถึงเวลาแต่ยังไม่เริ่ม
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                         {% if nsc > 0 %}bg-indigo-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %}">{{ nsc }}</span>
+        </button>
     </div>
 
-    <!-- drill-down lists (always render all 5 to align with counter cards above) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <!-- overdue -->
-        <div class="bg-white rounded-xl border border-red-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 bg-red-50 border-b border-red-200 flex items-center justify-between flex-shrink-0">
-                <p class="text-xs font-semibold text-red-700">เลย deadline แล้ว</p>
-                {% if oc %}<span class="text-xs font-bold text-red-500">{{ oc }}</span>{% endif %}
+    <!-- Tab content card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+        <!-- overdue panel -->
+        <div id="attn-panel-overdue" class="attn-panel hidden">
+            <div class="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                <span class="text-sm font-semibold text-red-700">เลย deadline แล้ว</span>
+                <span class="text-xs text-red-400 ml-1">{{ oc }} กิจกรรม</span>
             </div>
             {% if attention.overdue_acts %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 {% for act in attention.overdue_acts %}
-                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-red-50/50 transition-colors group">
-                    <svg class="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <div class="min-w-0">
-                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
-                        <p class="text-xs text-gray-400">{{ act.project.project_code }} · สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}"
+                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-red-50/40 group transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}</p>
                     </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs font-semibold text-red-500">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-gray-400">{{ act.get_status_display }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="flex-1 flex items-center justify-center px-4 py-6">
-                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
-            </div>
+            <div class="py-10 text-center"><p class="text-sm text-gray-300 italic">ไม่มีรายการ</p></div>
             {% endif %}
         </div>
 
-        <!-- budget full -->
-        <div class="bg-white rounded-xl border border-orange-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 bg-orange-50 border-b border-orange-200 flex items-center justify-between flex-shrink-0">
-                <p class="text-xs font-semibold text-orange-700">งบเต็มยังไม่ปิดกิจกรรม</p>
-                {% if bc %}<span class="text-xs font-bold text-orange-500">{{ bc }}</span>{% endif %}
+        <!-- budget full panel -->
+        <div id="attn-panel-budget_full" class="attn-panel hidden">
+            <div class="px-5 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                <span class="text-sm font-semibold text-orange-700">งบเต็มยังไม่ปิดกิจกรรม</span>
+                <span class="text-xs text-orange-400 ml-1">{{ bc }} กิจกรรม</span>
             </div>
             {% if attention.budget_full_acts %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 {% for act in attention.budget_full_acts %}
-                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-orange-50/50 transition-colors group">
-                    <svg class="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <div class="min-w-0">
-                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
-                        <p class="text-xs text-gray-400">{{ act.project.project_code }} · {{ act.get_status_display }}</p>
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}"
+                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-orange-50/40 group transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}</p>
                     </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs font-semibold text-orange-500">{{ act.get_status_display }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="flex-1 flex items-center justify-center px-4 py-6">
-                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
-            </div>
+            <div class="py-10 text-center"><p class="text-sm text-gray-300 italic">ไม่มีรายการ</p></div>
             {% endif %}
         </div>
 
-        <!-- no report -->
-        <div class="bg-white rounded-xl border border-yellow-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 bg-yellow-50 border-b border-yellow-200 flex items-center justify-between flex-shrink-0">
-                <p class="text-xs font-semibold text-yellow-700">มีเบิกจ่ายแต่ไม่มีรายงาน</p>
-                {% if nc %}<span class="text-xs font-bold text-yellow-600">{{ nc }}</span>{% endif %}
+        <!-- no report panel -->
+        <div id="attn-panel-no_report" class="attn-panel hidden">
+            <div class="px-5 py-3 bg-yellow-50 border-b border-yellow-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
+                <span class="text-sm font-semibold text-yellow-700">มีเบิกจ่ายแต่ไม่มีรายงานรองรับ</span>
+                <span class="text-xs text-yellow-500 ml-1">{{ nc }} กิจกรรม</span>
             </div>
             {% if attention.no_report_acts %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 {% for act in attention.no_report_acts %}
-                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-yellow-50/50 transition-colors group">
-                    <svg class="w-3.5 h-3.5 text-yellow-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <div class="min-w-0">
-                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
-                        <p class="text-xs text-gray-400">{{ act.project.project_code }}{% if act.unlinked_expense_count %} · {{ act.unlinked_expense_count }} รายการ{% endif %}</p>
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}"
+                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-yellow-50/40 group transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}{% if act.unlinked_expense_count %} · {{ act.unlinked_expense_count }} รายการเบิกจ่าย{% endif %}</p>
                     </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs font-semibold text-yellow-600">{{ act.get_status_display }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="flex-1 flex items-center justify-center px-4 py-6">
-                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
-            </div>
+            <div class="py-10 text-center"><p class="text-sm text-gray-300 italic">ไม่มีรายการ</p></div>
             {% endif %}
         </div>
 
-        <!-- no budget source -->
-        <div class="bg-white rounded-xl border border-purple-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 bg-purple-50 border-b border-purple-200 flex items-center justify-between flex-shrink-0">
-                <p class="text-xs font-semibold text-purple-700">ยังไม่ระบุแหล่งเงิน</p>
-                {% if sc %}<span class="text-xs font-bold text-purple-500">{{ sc }}</span>{% endif %}
+        <!-- no source panel -->
+        <div id="attn-panel-no_source" class="attn-panel hidden">
+            <div class="px-5 py-3 bg-purple-50 border-b border-purple-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span>
+                <span class="text-sm font-semibold text-purple-700">ยังไม่ระบุแหล่งเงิน</span>
+                <span class="text-xs text-purple-400 ml-1">{{ sc }} กิจกรรม</span>
             </div>
             {% if attention.no_source_acts %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 {% for act in attention.no_source_acts %}
-                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-purple-50/50 transition-colors group">
-                    <svg class="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <div class="min-w-0">
-                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
-                        <p class="text-xs text-gray-400">{{ act.project.project_code }}{% if act.no_source_expense_count %} · {{ act.no_source_expense_count }} รายการ{% endif %}</p>
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}"
+                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-purple-50/40 group transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}{% if act.no_source_expense_count %} · {{ act.no_source_expense_count }} รายการ{% endif %}</p>
                     </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs font-semibold text-purple-500">{{ act.get_status_display }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="flex-1 flex items-center justify-center px-4 py-6">
-                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
-            </div>
+            <div class="py-10 text-center"><p class="text-sm text-gray-300 italic">ไม่มีรายการ</p></div>
             {% endif %}
         </div>
 
-        <!-- not started yet -->
-        <div class="bg-white rounded-xl border border-indigo-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 bg-indigo-50 border-b border-indigo-200 flex items-center justify-between flex-shrink-0">
-                <p class="text-xs font-semibold text-indigo-700">ถึงเวลาแต่ยังไม่เริ่ม</p>
-                {% if nsc %}<span class="text-xs font-bold text-indigo-500">{{ nsc }}</span>{% endif %}
+        <!-- not started panel -->
+        <div id="attn-panel-not_started" class="attn-panel hidden">
+            <div class="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>
+                <span class="text-sm font-semibold text-indigo-700">ถึงเวลาดำเนินการแต่ยังไม่เริ่ม</span>
+                <span class="text-xs text-indigo-400 ml-1">{{ nsc }} กิจกรรม</span>
             </div>
             {% if attention.not_started_acts %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 {% for act in attention.not_started_acts %}
-                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}" class="flex items-start gap-2 px-4 py-3 hover:bg-indigo-50/50 transition-colors group">
-                    <svg class="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <div class="min-w-0">
-                        <p class="text-xs font-medium text-blue-900 group-hover:underline truncate">{{ act.name }}</p>
-                        <p class="text-xs text-gray-400">{{ act.project.project_code }} · เริ่ม {{ act.start_date|date:"d/m/Y" }}</p>
+                <a href="{% url 'projects:activity_detail' project_pk=act.project.pk pk=act.pk %}"
+                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-indigo-50/40 group transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{{ act.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ act.project.project_code }} · {{ act.project.name }}</p>
                     </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs font-semibold text-indigo-500">เริ่ม {{ act.start_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-gray-400">สิ้นสุด {{ act.end_date|date:"d/m/Y" }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="flex-1 flex items-center justify-center px-4 py-6">
-                <p class="text-xs text-gray-300 italic">ไม่มีรายการ</p>
-            </div>
+            <div class="py-10 text-center"><p class="text-sm text-gray-300 italic">ไม่มีรายการ</p></div>
             {% endif %}
         </div>
-    </div>
+
+    </div><!-- end content card -->
 </div>
 {% endif %}
 {% endwith %}
@@ -377,4 +389,51 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var tabs   = document.querySelectorAll('.attn-tab-btn');
+    var panels = document.querySelectorAll('.attn-panel');
+    if (!tabs.length) return;
+
+    var ringMap = {
+        overdue:      ['ring-2','ring-red-400','ring-offset-1','shadow-sm'],
+        budget_full:  ['ring-2','ring-orange-400','ring-offset-1','shadow-sm'],
+        no_report:    ['ring-2','ring-yellow-400','ring-offset-1','shadow-sm'],
+        no_source:    ['ring-2','ring-purple-400','ring-offset-1','shadow-sm'],
+        not_started:  ['ring-2','ring-indigo-400','ring-offset-1','shadow-sm'],
+    };
+
+    function activateTab(name) {
+        panels.forEach(function (p) { p.classList.add('hidden'); });
+        tabs.forEach(function (btn) {
+            var classes = ringMap[btn.dataset.attnTab] || [];
+            classes.forEach(function (c) { btn.classList.remove(c); });
+        });
+        var panel = document.getElementById('attn-panel-' + name);
+        if (panel) panel.classList.remove('hidden');
+        tabs.forEach(function (btn) {
+            if (btn.dataset.attnTab === name) {
+                (ringMap[name] || []).forEach(function (c) { btn.classList.add(c); });
+            }
+        });
+    }
+
+    tabs.forEach(function (btn) {
+        btn.addEventListener('click', function () { activateTab(this.dataset.attnTab); });
+    });
+
+    // auto-activate first tab with count > 0
+    var activated = false;
+    tabs.forEach(function (btn) {
+        if (!activated && parseInt(btn.dataset.count || 0) > 0) {
+            activateTab(btn.dataset.attnTab);
+            activated = true;
+        }
+    });
+    if (!activated) activateTab(tabs[0].dataset.attnTab);
+})();
+</script>
 {% endblock %}

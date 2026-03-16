@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -138,6 +139,13 @@ def index(request):
             for act in no_source_acts:
                 act.no_source_expense_count = no_source_counts.get(act.pk, 0)
 
+            # 5. ถึงเวลาดำเนินการแล้ว แต่ยังไม่เริ่ม (start_date <= today <= end_date, status=pending)
+            not_started_acts = scoped.filter(
+                start_date__lte=today,
+                end_date__gte=today,
+                status='pending',
+            ).select_related('project').order_by('start_date')[:8]
+
             attention = {
                 'overdue_acts': overdue_acts,
                 'overdue_count': scoped.filter(end_date__lt=today, status__in=['pending', 'in_progress']).count(),
@@ -156,6 +164,12 @@ def index(request):
                     expenses__status__in=['pending', 'approved'],
                     expenses__budget_source='',
                 ).distinct().count(),
+                'not_started_acts': not_started_acts,
+                'not_started_count': scoped.filter(
+                    start_date__lte=today,
+                    end_date__gte=today,
+                    status='pending',
+                ).count(),
             }
 
         context.update({
@@ -224,8 +238,27 @@ def executive(request):
             budget_source=src,
         ).aggregate(t=Sum('amount'))['t'] or 0
 
-    # Budget by department
-    departments = Department.objects.all().order_by('code')
+    source_breakdown = []
+    source_labels = {'government': 'เงินแผ่นดิน', 'accumulated': 'เงินสะสม', 'revenue': 'เงินรายได้'}
+    source_colors = {'government': 'blue', 'accumulated': 'yellow', 'revenue': 'green'}
+    for src in ['government', 'accumulated', 'revenue']:
+        src_budget = float(source_map.get(src, 0))
+        src_spent = float(spent_by_source.get(src, 0))
+        src_remaining = src_budget - src_spent
+        src_pct = round(src_spent / src_budget * 100, 1) if src_budget > 0 else 0
+        if src_budget > 0:
+            source_breakdown.append({
+                'key': src,
+                'label': source_labels[src],
+                'color': source_colors[src],
+                'budget': src_budget,
+                'spent': src_spent,
+                'remaining': src_remaining,
+                'pct': src_pct,
+            })
+
+    # Budget by department — เฉพาะแผนก (ไม่รวมผู้บริหาร/หัวหน้าสำนักงาน)
+    departments = Department.objects.filter(name__startswith='แผนก').order_by('code')
     dept_stats = []
     for dept in departments:
         dept_projects = all_projects.filter(department=dept)
@@ -241,7 +274,7 @@ def executive(request):
             'remaining': d_budget - d_spent,
             'pct': round(d_pct, 1),
         })
-    dept_stats = [d for d in dept_stats if d['budget'] > 0]
+    # แสดงทุกแผนก รวมถึงที่ยังไม่มีงบประมาณ
 
     # Attention items (all scope)
     all_activities = Activity.objects.filter(project__in=all_projects)
@@ -253,15 +286,29 @@ def executive(request):
         end_date__lt=today, status__in=['pending', 'in_progress']
     ).select_related('project').order_by('end_date')[:5]
 
-    no_report_count = all_activities.filter(
+    no_report_qs = all_activities.filter(
         expenses__status='approved',
         expenses__activity_report__isnull=True,
-    ).exclude(pk__in=ActivityReport.objects.values('activity_id')).distinct().count()
+    ).exclude(pk__in=ActivityReport.objects.values('activity_id')).distinct()
+    no_report_count = no_report_qs.count()
+    no_report_list = no_report_qs.select_related('project').order_by('project__name')[:5]
 
     no_source_count = all_activities.filter(
         expenses__status__in=['pending', 'approved'],
         expenses__budget_source='',
     ).distinct().count()
+
+    # ถึงเวลาดำเนินการแล้ว แต่ยังไม่เริ่ม
+    not_started_count = all_activities.filter(
+        start_date__lte=today,
+        end_date__gte=today,
+        status='pending',
+    ).count()
+    not_started_list = all_activities.filter(
+        start_date__lte=today,
+        end_date__gte=today,
+        status='pending',
+    ).select_related('project').order_by('start_date')[:5]
 
     # Top projects by budget usage
     top_projects = []
@@ -274,7 +321,26 @@ def executive(request):
     # Recent expenses
     recent_expenses = Expense.objects.filter(
         activity__project__in=all_projects
-    ).select_related('activity__project', 'created_by').order_by('-created_at')[:8]
+    ).select_related('activity__project', 'created_by').order_by('-created_at')[:6]
+
+    # Chart data (JSON)
+    chart_source = json.dumps({
+        'labels': ['เงินแผ่นดิน', 'เงินสะสม', 'เงินรายได้'],
+        'data': [
+            float(source_map.get('government', 0)),
+            float(source_map.get('accumulated', 0)),
+            float(source_map.get('revenue', 0)),
+        ],
+    })
+    chart_dept = json.dumps({
+        'labels': [d['dept'].name for d in dept_stats],
+        'spent': [float(d['spent']) for d in dept_stats],
+        'budget': [float(d['budget']) for d in dept_stats],
+    })
+    chart_status = json.dumps({
+        'labels': ['กำลังดำเนินการ', 'รอดำเนินการ', 'เสร็จสิ้น', 'ร่าง/ยกเลิก'],
+        'data': [active_projects, not_started_projects, completed_projects, draft_projects],
+    })
 
     context = {
         'fiscal_year': fiscal_year,
@@ -290,14 +356,21 @@ def executive(request):
         'pending_expenses': pending_expenses,
         'source_map': source_map,
         'spent_by_source': spent_by_source,
+        'source_breakdown': source_breakdown,
         'dept_stats': dept_stats,
         'overdue_count': overdue_count,
         'overdue_list': overdue_list,
         'no_report_count': no_report_count,
+        'no_report_list': no_report_list,
         'no_source_count': no_source_count,
+        'not_started_count': not_started_count,
+        'not_started_list': not_started_list,
         'top_projects': top_projects,
         'recent_expenses': recent_expenses,
         'today': today,
+        'chart_source': chart_source,
+        'chart_dept': chart_dept,
+        'chart_status': chart_status,
     }
     return render(request, 'dashboard/executive.html', context)
 

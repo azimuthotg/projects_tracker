@@ -27,6 +27,24 @@ def thaidate(value):
         return value
 
 
+_THAI_MONTHS_SHORT = [
+    '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
+    'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.',
+    'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+]
+
+
+@register.filter
+def thaidate_short(value):
+    """Format date as short Thai: D ม.ค. 68  e.g. 1 ก.พ. 68"""
+    if not value:
+        return ''
+    try:
+        return f"{value.day} {_THAI_MONTHS_SHORT[value.month]} {str(value.year + 543)[2:]}"
+    except (AttributeError, TypeError, IndexError):
+        return value
+
+
 @register.filter
 def thaidate_time(value):
     """Format datetime as Thai with time: D เดือน YYYY+543 HH:MM"""

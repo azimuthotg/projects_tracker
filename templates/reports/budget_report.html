@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load form_tags humanize %}
+
+{% block title %}รายงานภาพรวมงบประมาณ{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    aside, header, .no-print { display: none !important; }
+    .md\:ml-64 { margin-left: 0 !important; }
+    main { padding: 0.5rem !important; }
+    body { background: white !important; font-size: 11px; }
+    .print-title { display: block !important; }
+    thead { background-color: #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead th { color: white !important; }
+    tfoot { background-color: #dbeafe !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .progress-bar-wrap { display: none; }
+    .pct-only { display: inline !important; }
+}
+.print-title { display: none; }
+.pct-only { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-none">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">รายงานภาพรวมงบประมาณ</h1>
+            <p class="text-sm text-gray-500 mt-0.5">สรุปงบประมาณและการใช้จ่ายแยกรายโครงการ</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'reports:budget_report_print' %}?fiscal_year={{ current_fy }}&department={{ current_dept }}&status={{ current_status }}"
+               target="_blank"
+               class="inline-flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                ดูตัวอย่าง / พิมพ์
+            </a>
+            <a href="{% url 'reports:budget_report_pdf' %}?fiscal_year={{ current_fy }}&department={{ current_dept }}&status={{ current_status }}"
+               class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                ดาวน์โหลด PDF
+            </a>
+            <a href="{% url 'reports:budget_report_excel' %}?fiscal_year={{ current_fy }}&department={{ current_dept }}&status={{ current_status }}"
+               class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Print-only title -->
+    <div class="print-title mb-4 border-b-2 border-blue-900 pb-3">
+        <div class="text-xs text-gray-500">สำนักวิทยบริการ มหาวิทยาลัยนครพนม</div>
+        <div class="text-xl font-bold text-blue-900">รายงานภาพรวมงบประมาณ</div>
+        <div class="text-sm text-gray-600 mt-1">
+            {% if fiscal_year %}ปีงบประมาณ {{ fiscal_year.year }}{% endif %}
+            &nbsp;|&nbsp; ออกรายงาน: {{ today|thaidate }}
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-end shadow-sm">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">ปีงบประมาณ</label>
+            <select name="fiscal_year" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]">
+                <option value="">-- ทั้งหมด --</option>
+                {% for fy in fiscal_years %}
+                <option value="{{ fy.pk }}" {% if current_fy == fy.pk|stringformat:"s" %}selected{% endif %}>
+                    ปีงบ {{ fy.year }}{% if fy.is_active %} (ปัจจุบัน){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">แผนก</label>
+            <select name="department" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+                <option value="">-- ทุกแผนก --</option>
+                {% for dept in departments %}
+                <option value="{{ dept.pk }}" {% if current_dept == dept.pk|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">สถานะ</label>
+            <select name="status" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]">
+                <option value="">-- ทุกสถานะ --</option>
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium px-5 py-1.5 rounded-lg transition-colors">
+            ค้นหา
+        </button>
+    </form>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">โครงการทั้งหมด</p>
+            <p class="text-2xl font-bold text-blue-900">{{ projects|length }}</p>
+            <p class="text-xs text-gray-400">โครงการ</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">งบประมาณรวม</p>
+            <p class="text-xl font-bold text-gray-800">{{ total_budget|floatformat:2|intcomma }}</p>
+            <p class="text-xs text-gray-400">บาท</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">ใช้ไปแล้ว</p>
+            <p class="text-xl font-bold text-amber-600">{{ total_spent|floatformat:2|intcomma }}</p>
+            <p class="text-xs text-gray-400">บาท ({{ total_pct|floatformat:1 }}%)</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">คงเหลือ</p>
+            <p class="text-xl font-bold text-emerald-600">{{ total_remaining|floatformat:2|intcomma }}</p>
+            <p class="text-xs text-gray-400">บาท</p>
+        </div>
+    </div>
+
+    <!-- Table -->
+    {% if projects %}
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-blue-900 text-white text-xs">
+                        <th class="px-4 py-3 text-left font-semibold w-10">รหัส</th>
+                        <th class="px-4 py-3 text-left font-semibold">ชื่อโครงการ</th>
+                        <th class="px-4 py-3 text-center font-semibold">สถานะ</th>
+                        <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">เงินแผ่นดิน</th>
+                        <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">เงินสะสม</th>
+                        <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">เงินรายได้</th>
+                        <th class="px-3 py-3 text-right font-semibold">งบรวม</th>
+                        <th class="px-3 py-3 text-right font-semibold">ใช้ไป</th>
+                        <th class="px-3 py-3 text-right font-semibold">คงเหลือ</th>
+                        <th class="px-3 py-3 text-center font-semibold w-32">การใช้งบ</th>
+                        <th class="px-3 py-3 text-center font-semibold w-8"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    {% with bs=project.budget_by_source spent=project.total_spent total=project.total_budget pct=project.budget_usage_percent %}
+                    <tr class="border-b border-gray-100 hover:bg-blue-50/40 transition-colors {% if forloop.even %}bg-gray-50/50{% endif %}">
+                        <td class="px-4 py-3 text-gray-500 text-xs font-mono">{{ project.project_code }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'projects:project_detail' project.pk %}" class="font-medium text-gray-800 hover:text-blue-700 hover:underline">
+                                {{ project.name }}
+                            </a>
+                            <div class="text-xs text-gray-400 mt-0.5">{{ project.department.name }}</div>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            {% if project.status == 'active' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>ดำเนินการ
+                            </span>
+                            {% elif project.status == 'completed' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>เสร็จสิ้น
+                            </span>
+                            {% elif project.status == 'not_started' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>ยังไม่เริ่ม
+                            </span>
+                            {% elif project.status == 'cancelled' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>ยกเลิก
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-gray-500">{{ project.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right text-gray-700 font-mono text-xs">
+                            {% if bs.government %}{{ bs.government|floatformat:2|intcomma }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right text-gray-700 font-mono text-xs">
+                            {% if bs.accumulated %}{{ bs.accumulated|floatformat:2|intcomma }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right text-gray-700 font-mono text-xs">
+                            {% if bs.revenue %}{{ bs.revenue|floatformat:2|intcomma }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right font-semibold text-gray-800 font-mono text-xs">{{ total|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-3 text-right font-mono text-xs
+                            {% if pct >= 90 %}text-red-600 font-semibold{% elif pct >= 70 %}text-amber-600{% else %}text-gray-700{% endif %}">
+                            {{ spent|floatformat:2|intcomma }}
+                        </td>
+                        <td class="px-3 py-3 text-right font-mono text-xs text-emerald-700">{{ project.remaining_budget|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div class="h-2 rounded-full {% if pct >= 90 %}bg-red-500{% elif pct >= 70 %}bg-amber-400{% else %}bg-blue-500{% endif %}"
+                                         style="width: {{ pct|floatformat:1 }}%"></div>
+                                </div>
+                                <span class="text-xs font-medium w-10 text-right
+                                    {% if pct >= 90 %}text-red-600{% elif pct >= 70 %}text-amber-600{% else %}text-gray-600{% endif %}">
+                                    {{ pct|floatformat:1 }}%
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-2 py-3 text-center">
+                            <a href="{% url 'reports:project_report' project.pk %}" target="_blank"
+                               class="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-2 py-1 transition-colors whitespace-nowrap" title="ดูรายงานรายโครงการ">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                รายงาน
+                            </a>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="bg-blue-50 border-t-2 border-blue-200">
+                        <td colspan="6" class="px-4 py-3 text-sm font-bold text-blue-900 text-right">รวมทั้งหมด</td>
+                        <td class="px-3 py-3 text-right font-bold text-gray-800 font-mono text-xs">{{ total_budget|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-3 text-right font-bold text-amber-600 font-mono text-xs">{{ total_spent|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-3 text-right font-bold text-emerald-600 font-mono text-xs">{{ total_remaining|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    <div class="h-2 rounded-full {% if total_pct >= 90 %}bg-red-500{% elif total_pct >= 70 %}bg-amber-400{% else %}bg-blue-500{% endif %}"
+                                         style="width: {{ total_pct|floatformat:1 }}%"></div>
+                                </div>
+                                <span class="text-xs font-bold w-10 text-right text-blue-900">{{ total_pct|floatformat:1 }}%</span>
+                            </div>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="font-medium">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

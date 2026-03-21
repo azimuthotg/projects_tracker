@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load form_tags humanize %}
+
+{% block title %}รายงานโครงการ – {{ project.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    aside, header, .no-print { display: none !important; }
+    .md\:ml-64 { margin-left: 0 !important; }
+    main { padding: 0 !important; }
+    body { background: white !important; }
+    .print-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+    .page-break { page-break-before: always; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+    <!-- Toolbar (no-print) -->
+    <div class="flex items-center justify-between mb-6 no-print">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">รายงานรายโครงการ</h1>
+            <p class="text-sm text-gray-500 mt-0.5">{{ project.project_code }} – {{ project.name }}</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'reports:budget_report' %}" class="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-blue-300 transition-colors">
+                ← กลับ
+            </a>
+            <button onclick="window.print()"
+                    class="inline-flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                พิมพ์
+            </button>
+            <a href="{% url 'reports:project_report_pdf' project.pk %}"
+               class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                ดาวน์โหลด PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Project Header -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-5 print-card shadow-sm">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <div class="text-xs text-gray-400 mb-1">{{ project.fiscal_year }}</div>
+                <h2 class="text-xl font-bold text-blue-900">{{ project.name }}</h2>
+                <div class="text-sm text-gray-500 mt-1">รหัส: <span class="font-mono font-medium">{{ project.project_code }}</span> &nbsp;|&nbsp; {{ project.department.name }}</div>
+            </div>
+            <div class="text-right flex-shrink-0">
+                {% if project.status == 'active' %}
+                <span class="inline-flex items-center gap-1 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>กำลังดำเนินการ
+                </span>
+                {% elif project.status == 'completed' %}
+                <span class="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>เสร็จสิ้น
+                </span>
+                {% elif project.status == 'not_started' %}
+                <span class="inline-flex items-center gap-1 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>ยังไม่เริ่มดำเนินการ
+                </span>
+                {% else %}
+                <span class="text-sm text-gray-500">{{ project.get_status_display }}</span>
+                {% endif %}
+                <div class="text-xs text-gray-400 mt-2">ออกรายงาน: {{ now|thaidate }}</div>
+            </div>
+        </div>
+
+        <!-- Budget Summary Bar -->
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            {% with bs=project.budget_by_source %}
+            {% if bs.government %}
+            <div class="bg-blue-50 rounded-lg p-3">
+                <div class="text-xs text-blue-600 font-medium mb-1">เงินแผ่นดิน</div>
+                <div class="text-base font-bold text-blue-900">{{ bs.government|floatformat:2|intcomma }}</div>
+            </div>
+            {% endif %}
+            {% if bs.accumulated %}
+            <div class="bg-purple-50 rounded-lg p-3">
+                <div class="text-xs text-purple-600 font-medium mb-1">เงินสะสม</div>
+                <div class="text-base font-bold text-purple-900">{{ bs.accumulated|floatformat:2|intcomma }}</div>
+            </div>
+            {% endif %}
+            {% if bs.revenue %}
+            <div class="bg-emerald-50 rounded-lg p-3">
+                <div class="text-xs text-emerald-600 font-medium mb-1">เงินรายได้</div>
+                <div class="text-base font-bold text-emerald-900">{{ bs.revenue|floatformat:2|intcomma }}</div>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="flex items-center gap-4 bg-gray-50 rounded-lg p-3">
+            <div class="flex-1">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>ใช้ไป <strong class="text-gray-800">{{ project.total_spent|floatformat:2|intcomma }}</strong> บาท</span>
+                    <span>คงเหลือ <strong class="text-emerald-700">{{ project.remaining_budget|floatformat:2|intcomma }}</strong> บาท</span>
+                </div>
+                <div class="bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div class="h-3 rounded-full {% if project.budget_usage_percent >= 90 %}bg-red-500{% elif project.budget_usage_percent >= 70 %}bg-amber-400{% else %}bg-blue-500{% endif %}"
+                         style="width: {{ project.budget_usage_percent|floatformat:1 }}%"></div>
+                </div>
+            </div>
+            <div class="text-2xl font-bold {% if project.budget_usage_percent >= 90 %}text-red-600{% elif project.budget_usage_percent >= 70 %}text-amber-600{% else %}text-blue-700{% endif %}">
+                {{ project.budget_usage_percent|floatformat:1 }}%
+            </div>
+        </div>
+
+        {% if project.description %}
+        <div class="mt-3 text-sm text-gray-600 border-t border-gray-100 pt-3">{{ project.description }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Activities -->
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5 print-card shadow-sm">
+        <div class="px-5 py-3 bg-blue-900 text-white flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            <span class="font-semibold text-sm">กิจกรรม ({{ activities|length }} รายการ)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-blue-50 text-xs text-blue-900 border-b border-blue-100">
+                        <th class="px-4 py-2 text-left font-semibold w-8">#</th>
+                        <th class="px-4 py-2 text-left font-semibold">ชื่อกิจกรรม</th>
+                        <th class="px-3 py-2 text-center font-semibold">ช่วงเวลา</th>
+                        <th class="px-3 py-2 text-center font-semibold">สถานะ</th>
+                        <th class="px-3 py-2 text-right font-semibold">งบจัดสรร</th>
+                        <th class="px-3 py-2 text-right font-semibold">ใช้ไป</th>
+                        <th class="px-3 py-2 text-right font-semibold">คงเหลือ</th>
+                        <th class="px-3 py-2 text-center font-semibold">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in activities %}
+                    {% with pct=act.budget_usage_percent %}
+                    <tr class="border-b border-gray-100 {% if forloop.even %}bg-gray-50/50{% endif %}">
+                        <td class="px-4 py-2.5 text-gray-400 text-xs">{{ act.activity_number }}</td>
+                        <td class="px-4 py-2.5">
+                            <div class="font-medium text-gray-800 text-xs">{{ act.name }}</div>
+                        </td>
+                        <td class="px-3 py-2.5 text-center text-xs text-gray-500 whitespace-nowrap">
+                            {{ act.start_date|thaidate_short }} – {{ act.end_date|thaidate_short }}
+                        </td>
+                        <td class="px-3 py-2.5 text-center">
+                            {% if act.status == 'in_progress' %}
+                            <span class="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">กำลังดำเนินการ</span>
+                            {% elif act.status == 'completed' %}
+                            <span class="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">เสร็จสิ้น</span>
+                            {% elif act.status == 'cancelled' %}
+                            <span class="text-[10px] font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">ยกเลิก</span>
+                            {% else %}
+                            <span class="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">รอดำเนินการ</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2.5 text-right font-mono text-xs text-gray-700">{{ act.allocated_budget|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-2.5 text-right font-mono text-xs {% if pct >= 90 %}text-red-600 font-semibold{% elif pct >= 70 %}text-amber-600{% else %}text-gray-700{% endif %}">{{ act.total_spent|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-2.5 text-right font-mono text-xs text-emerald-700">{{ act.remaining_budget|floatformat:2|intcomma }}</td>
+                        <td class="px-3 py-2.5 text-center text-xs font-bold {% if pct >= 90 %}text-red-600{% elif pct >= 70 %}text-amber-600{% else %}text-blue-700{% endif %}">
+                            {{ pct|floatformat:1 }}%
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden print-card shadow-sm page-break">
+        <div class="px-5 py-3 bg-blue-900 text-white flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="font-semibold text-sm">รายการเบิกจ่าย ({{ expenses|length }} รายการ)</span>
+        </div>
+        {% if expenses %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-blue-50 text-xs text-blue-900 border-b border-blue-100">
+                        <th class="px-4 py-2 text-left font-semibold">กิจกรรม</th>
+                        <th class="px-4 py-2 text-left font-semibold">รายการ</th>
+                        <th class="px-3 py-2 text-center font-semibold whitespace-nowrap">เลขที่ใบเสร็จ</th>
+                        <th class="px-3 py-2 text-center font-semibold">วันที่</th>
+                        <th class="px-3 py-2 text-center font-semibold">แหล่งเงิน</th>
+                        <th class="px-3 py-2 text-right font-semibold">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in expenses %}
+                    <tr class="border-b border-gray-100 {% if forloop.even %}bg-gray-50/50{% endif %}">
+                        <td class="px-4 py-2 text-xs text-gray-500">{{ exp.activity.activity_number }}. {{ exp.activity.name|truncatechars:30 }}</td>
+                        <td class="px-4 py-2 text-xs text-gray-800">{{ exp.description }}</td>
+                        <td class="px-3 py-2 text-center text-xs font-mono text-gray-500">{{ exp.receipt_number|default:"—" }}</td>
+                        <td class="px-3 py-2 text-center text-xs text-gray-600 whitespace-nowrap">{{ exp.expense_date|thaidate }}</td>
+                        <td class="px-3 py-2 text-center">
+                            {% if exp.budget_source == 'government' %}
+                            <span class="text-[10px] text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-1.5 py-0.5">แผ่นดิน</span>
+                            {% elif exp.budget_source == 'accumulated' %}
+                            <span class="text-[10px] text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-1.5 py-0.5">สะสม</span>
+                            {% elif exp.budget_source == 'revenue' %}
+                            <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">รายได้</span>
+                            {% else %}<span class="text-gray-400 text-xs">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right font-mono text-xs font-semibold text-gray-800">{{ exp.amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="bg-blue-50 border-t-2 border-blue-200">
+                        <td colspan="5" class="px-4 py-3 text-sm font-bold text-blue-900 text-right">รวมทั้งหมด</td>
+                        <td class="px-3 py-3 text-right font-bold text-amber-600 font-mono">{{ total_spent|floatformat:2|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-gray-400 text-sm">ยังไม่มีรายการเบิกจ่าย</div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

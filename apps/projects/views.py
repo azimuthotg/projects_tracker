@@ -1,3 +1,6 @@
+import calendar as cal
+from datetime import date
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -757,4 +760,119 @@ def budget_transfer_history(request, project_pk):
     return render(request, 'projects/budget_transfer_history.html', {
         'project': project,
         'transfers': transfers,
+    })
+
+
+@login_required
+def project_timeline(request):
+    THAI_MONTHS = {
+        1: 'ม.ค.', 2: 'ก.พ.', 3: 'มี.ค.', 4: 'เม.ย.',
+        5: 'พ.ค.', 6: 'มิ.ย.', 7: 'ก.ค.', 8: 'ส.ค.',
+        9: 'ก.ย.', 10: 'ต.ค.', 11: 'พ.ย.', 12: 'ธ.ค.'
+    }
+
+    today = timezone.now().date()
+    fiscal_years = FiscalYear.objects.all().order_by('-year')
+    fiscal_year_id = request.GET.get('fiscal_year')
+
+    if fiscal_year_id:
+        fiscal_year = fiscal_years.filter(pk=fiscal_year_id).first()
+    else:
+        fiscal_year = fiscal_years.filter(is_active=True).first() or fiscal_years.first()
+
+    if not fiscal_year:
+        return render(request, 'projects/timeline.html', {
+            'fiscal_years': fiscal_years,
+            'fiscal_year': None,
+            'months': [],
+            'rows': [],
+        })
+
+    # Build 12-month columns for fiscal year (Oct → Sep)
+    fy_gregorian = fiscal_year.year - 543
+    fy_start_gregorian = fy_gregorian - 1
+
+    months = []
+    for i in range(12):
+        m = (9 + i) % 12 + 1
+        y = fy_start_gregorian if m >= 10 else fy_gregorian
+        m_start = date(y, m, 1)
+        m_end = date(y, m, cal.monthrange(y, m)[1])
+        months.append({
+            'label': THAI_MONTHS[m],
+            'month': m,
+            'year': y,
+            'start': m_start,
+            'end': m_end,
+            'is_current': (today.year == y and today.month == m),
+        })
+
+    def get_cell_style(status, overdue, is_current):
+        if overdue:
+            return ('bg-red-500', 'text-white') if is_current else ('bg-red-200', 'text-red-800')
+        mapping = {
+            'draft':       (('bg-slate-500', 'text-white'),   ('bg-slate-200', 'text-slate-700')),
+            'not_started': (('bg-amber-400', 'text-white'),   ('bg-amber-100', 'text-amber-800')),
+            'pending':     (('bg-amber-400', 'text-white'),   ('bg-amber-100', 'text-amber-800')),
+            'in_progress': (('bg-blue-600',  'text-white'),   ('bg-blue-200',  'text-blue-800')),
+            'active':      (('bg-blue-600',  'text-white'),   ('bg-blue-200',  'text-blue-800')),
+            'completed':   (('bg-emerald-500', 'text-white'), ('bg-emerald-200', 'text-emerald-800')),
+            'cancelled':   (('bg-slate-300', 'text-slate-500'), ('bg-slate-100', 'text-slate-400')),
+        }
+        pair = mapping.get(status, (('bg-gray-400', 'text-white'), ('bg-gray-200', 'text-gray-700')))
+        bg, fg = pair[0] if is_current else pair[1]
+        return bg, fg
+
+    def build_cells(start, end, status, overdue):
+        cells = []
+        for m in months:
+            overlaps = bool(start and end and start <= m['end'] and end >= m['start'])
+            if overlaps:
+                bg, fg = get_cell_style(status, overdue, m['is_current'])
+            else:
+                bg, fg = '', ''
+            cells.append({'overlaps': overlaps, 'bg': bg, 'fg': fg, 'is_current': m['is_current']})
+        return cells
+
+    projects = get_projects_for_user(request.user).filter(
+        fiscal_year=fiscal_year
+    ).prefetch_related(
+        'activities', 'responsible_persons',
+    ).annotate(
+        code_num=Cast('project_code', FloatField())
+    ).order_by('code_num', 'project_code')
+
+    rows = []
+    for project in projects:
+        proj_overdue = bool(
+            project.end_date and
+            project.end_date < today and
+            project.status not in ('completed', 'cancelled')
+        )
+        rows.append({
+            'type': 'project',
+            'obj': project,
+            'cells': build_cells(project.start_date, project.end_date, project.status, proj_overdue),
+            'overdue': proj_overdue,
+        })
+        for activity in project.activities.all().order_by('activity_number'):
+            act_overdue = bool(
+                activity.end_date and
+                activity.end_date < today and
+                activity.status not in ('completed', 'cancelled')
+            )
+            rows.append({
+                'type': 'activity',
+                'obj': activity,
+                'project': project,
+                'cells': build_cells(activity.start_date, activity.end_date, activity.status, act_overdue),
+                'overdue': act_overdue,
+            })
+
+    return render(request, 'projects/timeline.html', {
+        'months': months,
+        'rows': rows,
+        'fiscal_year': fiscal_year,
+        'fiscal_years': fiscal_years,
+        'today': today,
     })

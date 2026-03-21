@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load form_tags humanize %}
+
+{% block title %}รายงานการเบิกจ่าย{% endblock %}
+
+{% block content %}
+<div class="max-w-none">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">รายงานการเบิกจ่าย</h1>
+            <p class="text-sm text-gray-500 mt-0.5">รายการค่าใช้จ่ายที่อนุมัติแล้วทั้งหมด</p>
+        </div>
+        <a href="{% url 'reports:expense_report_excel' %}?fiscal_year={{ current_fy }}&department={{ current_dept }}&project={{ current_project }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}"
+           class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export Excel
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-6 shadow-sm">
+        <div class="flex flex-wrap gap-3 items-end">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-600">ปีงบประมาณ</label>
+                <select name="fiscal_year" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- ทั้งหมด --</option>
+                    {% for fy in fiscal_years %}
+                    <option value="{{ fy.pk }}" {% if current_fy == fy.pk|stringformat:"s" %}selected{% endif %}>
+                        ปีงบ {{ fy.year }}{% if fy.is_active %} (ปัจจุบัน){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-600">แผนก</label>
+                <select name="department" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]">
+                    <option value="">-- ทุกแผนก --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.pk }}" {% if current_dept == dept.pk|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-600">โครงการ</label>
+                <select name="project" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
+                    <option value="">-- ทุกโครงการ --</option>
+                    {% for p in available_projects %}
+                    <option value="{{ p.pk }}" {% if current_project == p.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ p.project_code }} – {{ p.name|truncatechars:30 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-600">วันที่ตั้งแต่</label>
+                <input type="date" name="date_from" value="{{ current_date_from }}"
+                       class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-600">ถึงวันที่</label>
+                <input type="date" name="date_to" value="{{ current_date_to }}"
+                       class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium px-5 py-1.5 rounded-lg transition-colors">
+                ค้นหา
+            </button>
+        </div>
+    </form>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">จำนวนรายการ</p>
+            <p class="text-2xl font-bold text-blue-900">{{ expenses|length }}</p>
+            <p class="text-xs text-gray-400">รายการ (อนุมัติแล้ว)</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-gray-500 mb-1">ยอดรวมทั้งหมด</p>
+            <p class="text-2xl font-bold text-amber-600">{{ total_amount|floatformat:2|intcomma }}</p>
+            <p class="text-xs text-gray-400">บาท</p>
+        </div>
+    </div>
+
+    <!-- Table -->
+    {% if expenses %}
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-blue-900 text-white text-xs">
+                        <th class="px-4 py-3 text-left font-semibold">โครงการ / กิจกรรม</th>
+                        <th class="px-4 py-3 text-left font-semibold">รายการค่าใช้จ่าย</th>
+                        <th class="px-3 py-3 text-center font-semibold whitespace-nowrap">เลขที่ใบเสร็จ</th>
+                        <th class="px-3 py-3 text-center font-semibold">วันที่</th>
+                        <th class="px-3 py-3 text-center font-semibold">แหล่งเงิน</th>
+                        <th class="px-3 py-3 text-right font-semibold">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr class="border-b border-gray-100 hover:bg-blue-50/30 transition-colors {% if forloop.even %}bg-gray-50/50{% endif %}">
+                        <td class="px-4 py-2.5">
+                            <div class="font-medium text-gray-800 text-xs">
+                                <a href="{% url 'projects:project_detail' expense.activity.project.pk %}"
+                                   class="hover:text-blue-700 hover:underline">
+                                    {{ expense.activity.project.project_code }}
+                                </a>
+                            </div>
+                            <div class="text-gray-500 text-xs mt-0.5">
+                                {{ expense.activity.activity_number }}. {{ expense.activity.name|truncatechars:40 }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-2.5 text-gray-700 text-xs max-w-xs">{{ expense.description|truncatechars:60 }}</td>
+                        <td class="px-3 py-2.5 text-center text-gray-500 text-xs font-mono">{{ expense.receipt_number|default:"—" }}</td>
+                        <td class="px-3 py-2.5 text-center text-gray-600 text-xs whitespace-nowrap">{{ expense.expense_date|thaidate }}</td>
+                        <td class="px-3 py-2.5 text-center">
+                            {% if expense.budget_source == 'government' %}
+                            <span class="inline-flex text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">เงินแผ่นดิน</span>
+                            {% elif expense.budget_source == 'accumulated' %}
+                            <span class="inline-flex text-[10px] font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5">เงินสะสม</span>
+                            {% elif expense.budget_source == 'revenue' %}
+                            <span class="inline-flex text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">เงินรายได้</span>
+                            {% else %}
+                            <span class="text-gray-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2.5 text-right font-mono text-xs font-semibold text-gray-800">{{ expense.amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="bg-blue-50 border-t-2 border-blue-200">
+                        <td colspan="5" class="px-4 py-3 text-sm font-bold text-blue-900 text-right">รวมทั้งหมด</td>
+                        <td class="px-3 py-3 text-right font-bold text-amber-600 font-mono text-sm">{{ total_amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="font-medium">ไม่พบรายการเบิกจ่ายตามเงื่อนไขที่เลือก</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

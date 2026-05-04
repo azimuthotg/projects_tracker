@@ -359,13 +359,20 @@ def executive(request):
     not_started_list = _not_started_qs[:4]
     not_started_list_all = _not_started_qs
 
-    # Top projects by budget usage
+    # All projects sorted by % desc, then project_code for 0%
     top_projects = []
-    for proj in all_projects.filter(total_budget__gt=0):
-        pct = proj.budget_usage_percent
-        if pct > 0:
-            top_projects.append({'project': proj, 'pct': round(pct, 1)})
-    top_projects = sorted(top_projects, key=lambda x: -x['pct'])[:6]
+    for proj in all_projects.select_related('department').order_by('project_code'):
+        spent = float(proj.total_spent)
+        budget = float(proj.total_budget)
+        pct = round(spent / budget * 100, 1) if budget > 0 else 0
+        top_projects.append({
+            'project': proj,
+            'pct': pct,
+            'budget': budget,
+            'spent': float(spent),
+            'remaining': budget - float(spent),
+        })
+    top_projects = sorted(top_projects, key=lambda x: (-x['pct'], x['project'].project_code or ''))
 
     # Recent expenses
     recent_expenses = Expense.objects.filter(

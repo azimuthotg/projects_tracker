@@ -325,16 +325,20 @@ def executive(request):
     overdue_count = all_activities.filter(
         end_date__lt=today, status__in=['pending', 'in_progress']
     ).count()
-    overdue_list = all_activities.filter(
+    _overdue_qs = all_activities.filter(
         end_date__lt=today, status__in=['pending', 'in_progress']
-    ).select_related('project').order_by('end_date')[:4]
+    ).select_related('project').order_by('end_date')
+    overdue_list = _overdue_qs[:4]
+    overdue_list_all = _overdue_qs
 
     no_report_qs = all_activities.filter(
         expenses__status='approved',
         expenses__activity_report__isnull=True,
     ).exclude(pk__in=ActivityReport.objects.values('activity_id')).distinct()
     no_report_count = no_report_qs.count()
-    no_report_list = no_report_qs.select_related('project').order_by('project__name')[:4]
+    _no_report_qs = no_report_qs.select_related('project').order_by('project__name')
+    no_report_list = _no_report_qs[:4]
+    no_report_list_all = _no_report_qs
 
     no_source_count = all_activities.filter(
         expenses__status__in=['pending', 'approved'],
@@ -347,11 +351,13 @@ def executive(request):
         end_date__gte=today,
         status='pending',
     ).count()
-    not_started_list = all_activities.filter(
+    _not_started_qs = all_activities.filter(
         start_date__lte=today,
         end_date__gte=today,
         status='pending',
-    ).select_related('project').order_by('start_date')[:4]
+    ).select_related('project').order_by('start_date')
+    not_started_list = _not_started_qs[:4]
+    not_started_list_all = _not_started_qs
 
     # Top projects by budget usage
     top_projects = []
@@ -404,11 +410,14 @@ def executive(request):
         'dept_totals': dept_totals,
         'overdue_count': overdue_count,
         'overdue_list': overdue_list,
+        'overdue_list_all': overdue_list_all,
         'no_report_count': no_report_count,
         'no_report_list': no_report_list,
+        'no_report_list_all': no_report_list_all,
         'no_source_count': no_source_count,
         'not_started_count': not_started_count,
         'not_started_list': not_started_list,
+        'not_started_list_all': not_started_list_all,
         'top_projects': top_projects,
         'recent_expenses': recent_expenses,
         'today': today,

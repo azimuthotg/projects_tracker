@@ -195,15 +195,14 @@
             <svg class="w-4 h-4 {% if overdue_count > 0 %}text-red-500{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-700">เลย Deadline แล้ว</p>
-              <span class="text-2xl font-bold {% if overdue_count > 0 %}text-red-500{% else %}text-gray-300{% endif %}">{{ overdue_count }}</span>
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-medium text-gray-700 truncate">เลย Deadline แล้ว <span class="text-xs font-normal text-gray-400 ml-1">| กิจกรรมที่เลยกำหนดยังไม่เสร็จ</span></p>
+              <span class="text-2xl font-bold flex-shrink-0 ml-2 {% if overdue_count > 0 %}text-red-500{% else %}text-gray-300{% endif %}">{{ overdue_count }}</span>
             </div>
-            <p class="text-xs text-gray-400 mb-1">กิจกรรมที่เลยกำหนดยังไม่เสร็จ</p>
             {% for act in overdue_list %}
             <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-red-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
-            {% if overdue_count > 4 %}<a href="{% url 'dashboard:my_tasks' %}" class="text-xs text-red-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ overdue_count }} รายการ →</a>{% endif %}
+            {% if overdue_count > 4 %}<button onclick="openModal('modalOverdue')" class="text-xs text-red-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ overdue_count }} รายการ →</button>{% endif %}
           </div>
         </div>
       </div>
@@ -215,15 +214,14 @@
             <svg class="w-4 h-4 {% if no_report_count > 0 %}text-orange-500{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-700">ไม่มีรายงานรองรับ</p>
-              <span class="text-2xl font-bold {% if no_report_count > 0 %}text-orange-500{% else %}text-gray-300{% endif %}">{{ no_report_count }}</span>
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-medium text-gray-700 truncate">ไม่มีรายงานรองรับ <span class="text-xs font-normal text-gray-400 ml-1">| มีค่าใช้จ่ายแต่ยังไม่บันทึกรายงาน</span></p>
+              <span class="text-2xl font-bold flex-shrink-0 ml-2 {% if no_report_count > 0 %}text-orange-500{% else %}text-gray-300{% endif %}">{{ no_report_count }}</span>
             </div>
-            <p class="text-xs text-gray-400 mb-1">มีค่าใช้จ่ายแต่ยังไม่บันทึกรายงาน</p>
             {% for act in no_report_list %}
             <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-orange-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
-            {% if no_report_count > 4 %}<a href="{% url 'projects:project_list' %}" class="text-xs text-orange-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ no_report_count }} รายการ →</a>{% endif %}
+            {% if no_report_count > 4 %}<button onclick="openModal('modalNoReport')" class="text-xs text-orange-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ no_report_count }} รายการ →</button>{% endif %}
           </div>
         </div>
       </div>
@@ -235,11 +233,10 @@
             <svg class="w-4 h-4 {% if no_source_count > 0 %}text-purple-500{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-700">ยังไม่ระบุแหล่งเงิน</p>
-              <span class="text-2xl font-bold {% if no_source_count > 0 %}text-purple-500{% else %}text-gray-300{% endif %}">{{ no_source_count }}</span>
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-medium text-gray-700 truncate">ยังไม่ระบุแหล่งเงิน <span class="text-xs font-normal text-gray-400 ml-1">| กิจกรรมที่ยังไม่จัดประเภทงบ</span></p>
+              <span class="text-2xl font-bold flex-shrink-0 ml-2 {% if no_source_count > 0 %}text-purple-500{% else %}text-gray-300{% endif %}">{{ no_source_count }}</span>
             </div>
-            <p class="text-xs text-gray-400">กิจกรรมที่ยังไม่จัดประเภทงบ</p>
           </div>
         </div>
       </div>
@@ -251,19 +248,84 @@
             <svg class="w-4 h-4 {% if not_started_count > 0 %}text-indigo-500{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-700">ถึงเวลาแต่ยังไม่เริ่ม</p>
-              <span class="text-2xl font-bold {% if not_started_count > 0 %}text-indigo-500{% else %}text-gray-300{% endif %}">{{ not_started_count }}</span>
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-medium text-gray-700 truncate">ถึงเวลาแต่ยังไม่เริ่ม <span class="text-xs font-normal text-gray-400 ml-1">| กิจกรรมที่ถึงเวลาดำเนินการแล้ว</span></p>
+              <span class="text-2xl font-bold flex-shrink-0 ml-2 {% if not_started_count > 0 %}text-indigo-500{% else %}text-gray-300{% endif %}">{{ not_started_count }}</span>
             </div>
-            <p class="text-xs text-gray-400 mb-1">กิจกรรมที่ถึงเวลาดำเนินการแล้ว</p>
             {% for act in not_started_list %}
             <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-indigo-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
-            {% if not_started_count > 4 %}<a href="{% url 'dashboard:my_tasks' %}" class="text-xs text-indigo-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ not_started_count }} รายการ →</a>{% endif %}
+            {% if not_started_count > 4 %}<button onclick="openModal('modalNotStarted')" class="text-xs text-indigo-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ not_started_count }} รายการ →</button>{% endif %}
           </div>
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal: เลย Deadline -->
+  <div id="modalOverdue" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('modalOverdue')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <h4 class="font-semibold text-gray-800">เลย Deadline แล้ว</h4>
+          <p class="text-xs text-gray-400">กิจกรรมที่เลยกำหนดยังไม่เสร็จ — ทั้งหมด {{ overdue_count }} รายการ</p>
+        </div>
+        <button onclick="closeModal('modalOverdue')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+        {% for act in overdue_list_all %}
+        <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="flex flex-col rounded-lg px-3 py-2 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors group">
+          <span class="text-sm text-gray-700 group-hover:text-red-700 font-medium">{{ act.name }}</span>
+          <span class="text-xs text-gray-400">{{ act.project.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: ไม่มีรายงานรองรับ -->
+  <div id="modalNoReport" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('modalNoReport')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <h4 class="font-semibold text-gray-800">ไม่มีรายงานรองรับ</h4>
+          <p class="text-xs text-gray-400">มีค่าใช้จ่ายแต่ยังไม่บันทึกรายงาน — ทั้งหมด {{ no_report_count }} รายการ</p>
+        </div>
+        <button onclick="closeModal('modalNoReport')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+        {% for act in no_report_list_all %}
+        <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="flex flex-col rounded-lg px-3 py-2 hover:bg-orange-50 border border-transparent hover:border-orange-100 transition-colors group">
+          <span class="text-sm text-gray-700 group-hover:text-orange-700 font-medium">{{ act.name }}</span>
+          <span class="text-xs text-gray-400">{{ act.project.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: ถึงเวลาแต่ยังไม่เริ่ม -->
+  <div id="modalNotStarted" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('modalNotStarted')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div>
+          <h4 class="font-semibold text-gray-800">ถึงเวลาแต่ยังไม่เริ่ม</h4>
+          <p class="text-xs text-gray-400">กิจกรรมที่ถึงเวลาดำเนินการแล้ว — ทั้งหมด {{ not_started_count }} รายการ</p>
+        </div>
+        <button onclick="closeModal('modalNotStarted')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+        {% for act in not_started_list_all %}
+        <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="flex flex-col rounded-lg px-3 py-2 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-colors group">
+          <span class="text-sm text-gray-700 group-hover:text-indigo-700 font-medium">{{ act.name }}</span>
+          <span class="text-xs text-gray-400">{{ act.project.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
@@ -424,6 +486,25 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modalOverdue','modalNoReport','modalNotStarted'].forEach(closeModal);
+  }
+});
+</script>
 <script>
 const sourceData = {{ chart_source|safe }};
 const deptData   = {{ chart_dept|safe }};

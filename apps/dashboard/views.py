@@ -376,7 +376,7 @@ def executive(request):
         ],
     })
     chart_dept = json.dumps({
-        'labels': [d['dept'].name for d in dept_stats],
+        'labels': [d['dept'].name if hasattr(d['dept'], 'name') else d['dept']['name'] for d in dept_stats],
         'spent': [float(d['spent']) for d in dept_stats],
         'budget': [float(d['budget']) for d in dept_stats],
     })

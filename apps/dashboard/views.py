@@ -262,6 +262,8 @@ def executive(request):
     dept_stats = []
     for dept in departments:
         dept_projects = all_projects.filter(department=dept)
+        d_project_count = dept_projects.count()
+        d_activity_count = Activity.objects.filter(project__in=dept_projects).count()
         d_budget = dept_projects.aggregate(t=Sum('total_budget'))['t'] or 0
         d_spent = Expense.objects.filter(
             activity__project__in=dept_projects, status='approved'
@@ -269,12 +271,24 @@ def executive(request):
         d_pct = float(d_spent / d_budget * 100) if d_budget > 0 else 0
         dept_stats.append({
             'dept': dept,
+            'project_count': d_project_count,
+            'activity_count': d_activity_count,
             'budget': d_budget,
             'spent': d_spent,
             'remaining': d_budget - d_spent,
             'pct': round(d_pct, 1),
         })
-    # แสดงทุกแผนก รวมถึงที่ยังไม่มีงบประมาณ
+    dept_totals = {
+        'project_count': sum(d['project_count'] for d in dept_stats),
+        'activity_count': sum(d['activity_count'] for d in dept_stats),
+        'budget': sum(d['budget'] for d in dept_stats),
+        'spent': sum(d['spent'] for d in dept_stats),
+        'remaining': sum(d['remaining'] for d in dept_stats),
+    }
+    dept_totals['pct'] = round(
+        float(dept_totals['spent'] / dept_totals['budget'] * 100)
+        if dept_totals['budget'] > 0 else 0, 1
+    )
 
     # Attention items (all scope)
     all_activities = Activity.objects.filter(project__in=all_projects)
@@ -358,6 +372,7 @@ def executive(request):
         'spent_by_source': spent_by_source,
         'source_breakdown': source_breakdown,
         'dept_stats': dept_stats,
+        'dept_totals': dept_totals,
         'overdue_count': overdue_count,
         'overdue_list': overdue_list,
         'no_report_count': no_report_count,

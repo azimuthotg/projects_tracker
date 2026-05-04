@@ -278,6 +278,35 @@ def executive(request):
             'remaining': d_budget - d_spent,
             'pct': round(d_pct, 1),
         })
+    # Non-แผนก departments (e.g. หัวหน้าสำนักงาน) — จัดกลุ่มตาม dept จริง
+    from collections import defaultdict
+    from django.db.models import Q
+    non_dept_projects = all_projects.filter(
+        Q(department__isnull=True) | ~Q(department__name__startswith='แผนก')
+    )
+    if non_dept_projects.exists():
+        groups = defaultdict(list)
+        for p in non_dept_projects.select_related('department'):
+            key = p.department.name if p.department else 'ไม่ระบุแผนก'
+            groups[key].append(p.pk)
+        for dept_name, pk_list in sorted(groups.items()):
+            qs = all_projects.filter(pk__in=pk_list)
+            d_budget = qs.aggregate(t=Sum('total_budget'))['t'] or 0
+            d_spent = Expense.objects.filter(
+                activity__project__in=qs, status='approved'
+            ).aggregate(t=Sum('amount'))['t'] or 0
+            d_pct = float(d_spent / d_budget * 100) if d_budget > 0 else 0
+            dept_stats.append({
+                'dept': {'name': dept_name},
+                'project_count': len(pk_list),
+                'activity_count': Activity.objects.filter(project__in=qs).count(),
+                'budget': d_budget,
+                'spent': d_spent,
+                'remaining': d_budget - d_spent,
+                'pct': round(d_pct, 1),
+                'is_other': True,
+            })
+
     dept_totals = {
         'project_count': sum(d['project_count'] for d in dept_stats),
         'activity_count': sum(d['activity_count'] for d in dept_stats),

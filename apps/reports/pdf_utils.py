@@ -157,10 +157,10 @@ def build_document(buffer, title, page_size=A4):
     return doc
 
 
-def header_block(styles, title_text, subtitle_text='', org_text='สำนักวิทยบริการ มหาวิทยาลัยนครพนม'):
+def header_block(styles, title_text, subtitle_text='', org_text='สำนักวิทยบริการ มหาวิทยาลัยนครพนม', page_width=None):
     """Return a blue header table for the top of the PDF."""
     from reportlab.platypus import Table, TableStyle
-    width = A4[0] - 3 * cm  # page width minus margins
+    width = page_width if page_width is not None else A4[0] - 3 * cm
 
     inner = []
     if org_text:

@@ -2,7 +2,7 @@ import io
 
 import openpyxl
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import (
@@ -580,14 +580,14 @@ def budget_report_pdf(request):
 
     styles = make_styles()
     buf = io.BytesIO()
-    doc = build_document(buf, "รายงานภาพรวมงบประมาณ")
+    doc = build_document(buf, "รายงานภาพรวมงบประมาณ", page_size=landscape(A4))
 
-    W = A4[0] - 3 * cm  # usable width
+    W = landscape(A4)[0] - 3 * cm  # usable width (landscape)
 
     story = []
 
     # Header block
-    story.append(header_block(styles, "รายงานภาพรวมงบประมาณ", subtitle))
+    story.append(header_block(styles, "รายงานภาพรวมงบประมาณ", subtitle, page_width=W))
     story.append(Spacer(1, 6))
 
     # Summary cards
@@ -606,7 +606,7 @@ def budget_report_pdf(request):
         'active': 'ดำเนินการ', 'completed': 'เสร็จสิ้น', 'cancelled': 'ยกเลิก',
     }
 
-    col_widths = [1.2*cm, 6.0*cm, 1.8*cm, 2.2*cm, 2.2*cm, 2.2*cm, 2.4*cm, 2.4*cm, 2.4*cm, 1.4*cm]
+    col_widths = [1.2*cm, 9.5*cm, 2.0*cm, 2.2*cm, 2.2*cm, 2.2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 1.9*cm]
     headers = [
         Paragraph("รหัส", styles['th']),
         Paragraph("ชื่อโครงการ", styles['th']),

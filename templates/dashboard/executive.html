@@ -201,8 +201,9 @@
             </div>
             <p class="text-xs text-gray-400 mb-1">กิจกรรมที่เลยกำหนดยังไม่เสร็จ</p>
             {% for act in overdue_list %}
-            <p class="text-xs text-gray-500 truncate">· {{ act.name }}</p>
+            <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-red-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
+            {% if overdue_count > 4 %}<a href="{% url 'dashboard:my_tasks' %}" class="text-xs text-red-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ overdue_count }} รายการ →</a>{% endif %}
           </div>
         </div>
       </div>
@@ -220,8 +221,9 @@
             </div>
             <p class="text-xs text-gray-400 mb-1">มีค่าใช้จ่ายแต่ยังไม่บันทึกรายงาน</p>
             {% for act in no_report_list %}
-            <p class="text-xs text-gray-500 truncate">· {{ act.name }}</p>
+            <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-orange-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
+            {% if no_report_count > 4 %}<a href="{% url 'projects:project_list' %}" class="text-xs text-orange-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ no_report_count }} รายการ →</a>{% endif %}
           </div>
         </div>
       </div>
@@ -255,8 +257,9 @@
             </div>
             <p class="text-xs text-gray-400 mb-1">กิจกรรมที่ถึงเวลาดำเนินการแล้ว</p>
             {% for act in not_started_list %}
-            <p class="text-xs text-gray-500 truncate">· {{ act.name }}</p>
+            <a href="{% url 'projects:activity_detail' act.project.pk act.pk %}" class="text-xs text-gray-500 hover:text-indigo-600 truncate block leading-5">· {{ act.name }} <span class="text-gray-400">— {{ act.project.name }}</span></a>
             {% endfor %}
+            {% if not_started_count > 4 %}<a href="{% url 'dashboard:my_tasks' %}" class="text-xs text-indigo-500 hover:underline mt-0.5 block">ดูทั้งหมด {{ not_started_count }} รายการ →</a>{% endif %}
           </div>
         </div>
       </div>

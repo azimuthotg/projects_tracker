@@ -327,14 +327,14 @@ def executive(request):
     ).count()
     overdue_list = all_activities.filter(
         end_date__lt=today, status__in=['pending', 'in_progress']
-    ).select_related('project').order_by('end_date')[:5]
+    ).select_related('project').order_by('end_date')[:4]
 
     no_report_qs = all_activities.filter(
         expenses__status='approved',
         expenses__activity_report__isnull=True,
     ).exclude(pk__in=ActivityReport.objects.values('activity_id')).distinct()
     no_report_count = no_report_qs.count()
-    no_report_list = no_report_qs.select_related('project').order_by('project__name')[:5]
+    no_report_list = no_report_qs.select_related('project').order_by('project__name')[:4]
 
     no_source_count = all_activities.filter(
         expenses__status__in=['pending', 'approved'],
@@ -351,7 +351,7 @@ def executive(request):
         start_date__lte=today,
         end_date__gte=today,
         status='pending',
-    ).select_related('project').order_by('start_date')[:5]
+    ).select_related('project').order_by('start_date')[:4]
 
     # Top projects by budget usage
     top_projects = []

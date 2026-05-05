@@ -691,7 +691,7 @@ def budget_report_pdf(request):
     story.append(HRFlowable(width=W, thickness=0.5, color=C_BORDER))
     story.append(Spacer(1, 4))
     story.append(Paragraph(
-        f"ระบบติดตามโครงการ — สำนักวิทยบริการ มหาวิทยาลัยนครพนม  |  {pdf_thaidate(timezone.now().date())}",
+        f"ระบบติดตามแผนงาน โครงการและงบประมาณ — สำนักวิทยบริการ มหาวิทยาลัยนครพนม  |  {pdf_thaidate(timezone.now().date())}",
         styles['footer']
     ))
 
@@ -880,7 +880,7 @@ def project_report_pdf(request, pk):
     story.append(HRFlowable(width=W, thickness=0.5, color=C_BORDER))
     story.append(Spacer(1, 4))
     story.append(Paragraph(
-        f"ระบบติดตามโครงการ — สำนักวิทยบริการ มหาวิทยาลัยนครพนม  |  {pdf_thaidate(timezone.now().date())}",
+        f"ระบบติดตามแผนงาน โครงการและงบประมาณ — สำนักวิทยบริการ มหาวิทยาลัยนครพนม  |  {pdf_thaidate(timezone.now().date())}",
         styles['footer']
     ))
 

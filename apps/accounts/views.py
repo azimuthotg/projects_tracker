@@ -62,8 +62,8 @@ def manage_dashboard(request):
     pending_expenses = Expense.objects.filter(status='pending').count()
 
     departments = Department.objects.annotate(
-        member_count=Count('members'),
-        project_count=Count('projects'),
+        member_count=Count('members', distinct=True),
+        project_count=Count('projects', distinct=True),
     )
 
     context = {
@@ -208,8 +208,8 @@ def user_toggle_active(request, pk):
 @role_required(['admin'])
 def department_list(request):
     departments = Department.objects.annotate(
-        member_count=Count('members'),
-        project_count=Count('projects'),
+        member_count=Count('members', distinct=True),
+        project_count=Count('projects', distinct=True),
     )
     return render(request, 'manage/department_list.html', {'departments': departments})
 

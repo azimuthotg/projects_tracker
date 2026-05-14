@@ -9,10 +9,12 @@
         <h2 class="text-2xl font-bold text-gray-800">รายการเบิกจ่าย</h2>
         <p class="text-gray-500 mt-1">รายการเบิกจ่ายทั้งหมดที่คุณมีสิทธิ์เข้าถึง</p>
     </div>
+    {% if user.profile.role != "executive" %}
     <a href="{% url 'budget:expense_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         บันทึกเบิกจ่าย
     </a>
+    {% endif %}
 </div>
 
 <!-- Filters -->
@@ -104,10 +106,12 @@
                                 <p class="text-sm font-medium text-gray-500">ไม่พบรายการเบิกจ่าย</p>
                                 <p class="text-xs text-gray-400 mt-1">ลองเปลี่ยนตัวกรองหรือสร้างรายการใหม่</p>
                             </div>
+                            {% if user.profile.role != "executive" %}
                             <a href="{% url 'budget:expense_create' %}" class="inline-flex items-center gap-1.5 mt-1 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 บันทึกเบิกจ่ายใหม่
                             </a>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

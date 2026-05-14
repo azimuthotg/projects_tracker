@@ -339,12 +339,14 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 text-center">
+                        {% if can_change_status %}
                         <div class="flex items-center justify-center gap-3">
                             <a href="{% url 'projects:activity_report_edit' pk=report.pk %}"
                                class="text-sm text-yellow-600 hover:text-yellow-800 transition-colors">แก้ไข</a>
                             <a href="{% url 'projects:activity_report_delete' pk=report.pk %}"
                                class="text-sm text-red-500 hover:text-red-700 transition-colors">ลบ</a>
                         </div>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

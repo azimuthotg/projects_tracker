@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}แบบฟอร์ม{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">แบบฟอร์ม</h1>
+      <p class="text-sm text-gray-500 mt-0.5">ดาวน์โหลดแบบฟอร์มสำหรับกรอกและส่งแผนก</p>
+    </div>
+    {% if can_manage %}
+    <a href="{% url 'projects:forms_manage' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      จัดการแบบฟอร์ม
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="flex gap-2 mb-6 flex-wrap">
+    <a href="{% url 'projects:forms_list' %}"
+       class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors
+              {% if not current_category %}bg-blue-900 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+      ทั้งหมด
+    </a>
+    {% for value, label in category_choices %}
+    <a href="{% url 'projects:forms_list' %}?category={{ value }}"
+       class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors
+              {% if current_category == value %}bg-blue-900 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Content -->
+  {% if grouped %}
+    {% for category_label, items in grouped.items %}
+    <div class="mb-8">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{{ category_label }}</h2>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
+        {% for tmpl in items %}
+        <div class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+          <!-- Icon by file type -->
+          <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
+            {% if tmpl.file_ext == 'pdf' %}bg-red-50
+            {% elif tmpl.file_ext in 'docx,doc' %}bg-blue-50
+            {% else %}bg-green-50{% endif %}">
+            {% if tmpl.file_ext == 'pdf' %}
+            <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+            </svg>
+            {% elif tmpl.file_ext in 'docx,doc' %}
+            <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+            </svg>
+            {% else %}
+            <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+            </svg>
+            {% endif %}
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-gray-900">{{ tmpl.name }}</span>
+              {% if tmpl.version %}
+              <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{{ tmpl.version }}</span>
+              {% endif %}
+              <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded uppercase font-mono">{{ tmpl.file_ext }}</span>
+            </div>
+            {% if tmpl.description %}
+            <p class="text-sm text-gray-500 mt-0.5 truncate">{{ tmpl.description }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Download button -->
+          <a href="{% url 'projects:forms_download' tmpl.pk %}"
+             class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            ดาวน์โหลด
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-16 text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p class="text-gray-500">ยังไม่มีแบบฟอร์มในหมวดนี้</p>
+    {% if can_manage %}
+    <a href="{% url 'projects:forms_manage' %}" class="mt-3 inline-block text-sm text-blue-600 hover:underline">อัปโหลดแบบฟอร์มแรก</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

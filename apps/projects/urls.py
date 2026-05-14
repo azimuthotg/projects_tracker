@@ -23,4 +23,10 @@ urlpatterns = [
     path('activities/reports/<int:pk>/delete/', views.activity_report_delete, name='activity_report_delete'),
     path('<int:project_pk>/budget-transfer/', views.budget_transfer, name='budget_transfer'),
     path('<int:project_pk>/budget-transfer/history/', views.budget_transfer_history, name='budget_transfer_history'),
+    # Document Templates
+    path('forms/', views.forms_list, name='forms_list'),
+    path('forms/download/<int:pk>/', views.forms_download, name='forms_download'),
+    path('forms/manage/', views.forms_manage, name='forms_manage'),
+    path('forms/<int:pk>/edit/', views.forms_edit, name='forms_edit'),
+    path('forms/<int:pk>/delete/', views.forms_delete, name='forms_delete'),
 ]

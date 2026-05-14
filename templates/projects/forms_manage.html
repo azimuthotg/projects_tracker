@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการแบบฟอร์ม{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+        <a href="{% url 'projects:forms_list' %}" class="hover:text-blue-600">แบบฟอร์ม</a>
+        <span>/</span>
+        <span>จัดการ</span>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">จัดการแบบฟอร์ม</h1>
+    </div>
+    <a href="{% url 'projects:forms_list' %}"
+       class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      กลับหน้ารายการ
+    </a>
+  </div>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm
+    {% if msg.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
+    {% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Upload Form -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <h2 class="text-base font-semibold text-gray-900 mb-4">อัปโหลดแบบฟอร์มใหม่</h2>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อแบบฟอร์ม <span class="text-red-500">*</span></label>
+          <input type="text" name="name" required placeholder="เช่น แบบฟอร์มรายงานผลการดำเนินงาน"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+          <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for value, label in category_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ไฟล์ <span class="text-red-500">*</span></label>
+          <input type="file" name="file" required accept=".pdf,.docx,.doc,.xlsx,.xls"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-400 mt-1">PDF, Word (.docx/.doc), Excel (.xlsx/.xls) — ไม่เกิน 20 MB</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">เวอร์ชัน/ปีงบ</label>
+          <input type="text" name="version" placeholder="เช่น 2568"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย/วิธีใช้</label>
+        <textarea name="description" rows="2" placeholder="อธิบายสั้นๆ ว่าแบบฟอร์มนี้ใช้ทำอะไร"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-5 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          อัปโหลด
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Existing forms table -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+      <h2 class="text-base font-semibold text-gray-900">แบบฟอร์มทั้งหมด ({{ templates|length }})</h2>
+    </div>
+    {% if templates %}
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+        <tr>
+          <th class="px-5 py-3 text-left">ชื่อแบบฟอร์ม</th>
+          <th class="px-4 py-3 text-left">หมวด</th>
+          <th class="px-4 py-3 text-left">ไฟล์</th>
+          <th class="px-4 py-3 text-left">สถานะ</th>
+          <th class="px-4 py-3 text-left">อัปโหลดโดย</th>
+          <th class="px-4 py-3 text-right">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for tmpl in templates %}
+        <tr class="hover:bg-gray-50 {% if not tmpl.is_active %}opacity-50{% endif %}">
+          <td class="px-5 py-3">
+            <div class="font-medium text-gray-900">{{ tmpl.name }}</div>
+            {% if tmpl.version %}<div class="text-xs text-gray-400">v{{ tmpl.version }}</div>{% endif %}
+            {% if tmpl.description %}<div class="text-xs text-gray-500 truncate max-w-xs">{{ tmpl.description }}</div>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-600">{{ tmpl.get_category_display }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-block text-xs px-2 py-0.5 rounded font-mono uppercase
+              {% if tmpl.file_ext == 'pdf' %}bg-red-50 text-red-600
+              {% elif tmpl.file_ext in 'docx,doc' %}bg-blue-50 text-blue-600
+              {% else %}bg-green-50 text-green-600{% endif %}">
+              {{ tmpl.file_ext }}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            {% if tmpl.is_active %}
+            <span class="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>เปิดใช้
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>ซ่อน
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-500 text-xs">
+            {{ tmpl.uploaded_by.get_full_name|default:tmpl.uploaded_by.username }}<br>
+            {{ tmpl.created_at|date:"d/m/Y" }}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{% url 'projects:forms_download' tmpl.pk %}"
+                 class="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors">
+                ดาวน์โหลด
+              </a>
+              <a href="{% url 'projects:forms_edit' tmpl.pk %}"
+                 class="text-xs px-2.5 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
+                แก้ไข
+              </a>
+              <form method="post" action="{% url 'projects:forms_delete' tmpl.pk %}"
+                    onsubmit="return confirm('ลบแบบฟอร์ม "{{ tmpl.name }}" ?\nไฟล์จะถูกลบถาวร')">
+                {% csrf_token %}
+                <button type="submit"
+                        class="text-xs px-2.5 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
+                  ลบ
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="py-12 text-center text-gray-400 text-sm">ยังไม่มีแบบฟอร์ม</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

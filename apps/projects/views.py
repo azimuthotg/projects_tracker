@@ -16,7 +16,7 @@ from apps.budget.forms import BudgetTransferForm
 from apps.budget.models import BudgetTransfer, Expense
 
 from .forms import ActivityForm, ActivityReportForm, ProjectBudgetSourceFormSet, ProjectForm
-from .models import Activity, ActivityReport, FiscalYear, Project, ProjectDeleteRequest
+from .models import Activity, ActivityReport, DocumentTemplate, FiscalYear, Project, ProjectDeleteRequest
 from .utils import get_actionable_projects, get_projects_for_user, get_viewable_projects
 
 
@@ -879,3 +879,126 @@ def project_timeline(request):
         'fiscal_years': fiscal_years,
         'today': today,
     })
+
+
+# ─── Document Templates (แบบฟอร์ม) ─────────────────────────────────────────
+
+@login_required
+def forms_list(request):
+    category = request.GET.get('category', '')
+    templates = DocumentTemplate.objects.filter(is_active=True)
+    if category:
+        templates = templates.filter(category=category)
+    templates = templates.select_related('uploaded_by')
+
+    grouped = {}
+    for t in templates:
+        label = t.get_category_display()
+        grouped.setdefault(label, []).append(t)
+
+    can_manage = hasattr(request.user, 'profile') and request.user.profile.role in ('planner', 'admin')
+
+    return render(request, 'projects/forms_list.html', {
+        'grouped': grouped,
+        'category_choices': DocumentTemplate.CATEGORY_CHOICES,
+        'current_category': category,
+        'can_manage': can_manage,
+    })
+
+
+@login_required
+def forms_download(request, pk):
+    import mimetypes
+    from django.http import FileResponse
+    tmpl = get_object_or_404(DocumentTemplate, pk=pk, is_active=True)
+    file_path = tmpl.file.path
+    mime, _ = mimetypes.guess_type(file_path)
+    mime = mime or 'application/octet-stream'
+    response = FileResponse(open(file_path, 'rb'), content_type=mime)
+    response['Content-Disposition'] = f'attachment; filename="{tmpl.filename()}"'
+    return response
+
+
+@role_required(['planner', 'admin'])
+def forms_manage(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', 'other')
+        description = request.POST.get('description', '').strip()
+        version = request.POST.get('version', '').strip()
+        uploaded_file = request.FILES.get('file')
+
+        if not name or not uploaded_file:
+            messages.error(request, 'กรุณากรอกชื่อแบบฟอร์มและเลือกไฟล์')
+        else:
+            ext = uploaded_file.name.rsplit('.', 1)[-1].lower() if '.' in uploaded_file.name else ''
+            if ext not in ('pdf', 'docx', 'doc', 'xlsx', 'xls'):
+                messages.error(request, 'รองรับเฉพาะไฟล์ PDF, Word (.docx/.doc), Excel (.xlsx/.xls)')
+            elif uploaded_file.size > 20 * 1024 * 1024:
+                messages.error(request, 'ไฟล์ต้องมีขนาดไม่เกิน 20 MB')
+            else:
+                DocumentTemplate.objects.create(
+                    name=name,
+                    category=category,
+                    description=description,
+                    version=version,
+                    file=uploaded_file,
+                    uploaded_by=request.user,
+                )
+                messages.success(request, f'อัปโหลดแบบฟอร์ม "{name}" สำเร็จ')
+                return redirect('projects:forms_manage')
+
+    templates = DocumentTemplate.objects.all().select_related('uploaded_by').order_by('category', 'name')
+    return render(request, 'projects/forms_manage.html', {
+        'templates': templates,
+        'category_choices': DocumentTemplate.CATEGORY_CHOICES,
+    })
+
+
+@role_required(['planner', 'admin'])
+def forms_edit(request, pk):
+    tmpl = get_object_or_404(DocumentTemplate, pk=pk)
+
+    if request.method == 'POST':
+        tmpl.name = request.POST.get('name', tmpl.name).strip()
+        tmpl.category = request.POST.get('category', tmpl.category)
+        tmpl.description = request.POST.get('description', '').strip()
+        tmpl.version = request.POST.get('version', '').strip()
+        tmpl.is_active = request.POST.get('is_active') == '1'
+        new_file = request.FILES.get('file')
+        if new_file:
+            ext = new_file.name.rsplit('.', 1)[-1].lower() if '.' in new_file.name else ''
+            if ext not in ('pdf', 'docx', 'doc', 'xlsx', 'xls'):
+                messages.error(request, 'รองรับเฉพาะไฟล์ PDF, Word (.docx/.doc), Excel (.xlsx/.xls)')
+                return render(request, 'projects/forms_edit.html', {
+                    'tmpl': tmpl,
+                    'category_choices': DocumentTemplate.CATEGORY_CHOICES,
+                })
+            if new_file.size > 20 * 1024 * 1024:
+                messages.error(request, 'ไฟล์ต้องมีขนาดไม่เกิน 20 MB')
+                return render(request, 'projects/forms_edit.html', {
+                    'tmpl': tmpl,
+                    'category_choices': DocumentTemplate.CATEGORY_CHOICES,
+                })
+            tmpl.file.delete(save=False)
+            tmpl.file = new_file
+        tmpl.save()
+        messages.success(request, f'แก้ไขแบบฟอร์ม "{tmpl.name}" สำเร็จ')
+        return redirect('projects:forms_manage')
+
+    return render(request, 'projects/forms_edit.html', {
+        'tmpl': tmpl,
+        'category_choices': DocumentTemplate.CATEGORY_CHOICES,
+    })
+
+
+@role_required(['planner', 'admin'])
+def forms_delete(request, pk):
+    if request.method != 'POST':
+        raise PermissionDenied
+    tmpl = get_object_or_404(DocumentTemplate, pk=pk)
+    name = tmpl.name
+    tmpl.file.delete(save=False)
+    tmpl.delete()
+    messages.success(request, f'ลบแบบฟอร์ม "{name}" แล้ว')
+    return redirect('projects:forms_manage')

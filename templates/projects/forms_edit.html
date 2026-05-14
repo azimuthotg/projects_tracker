@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}แก้ไขแบบฟอร์ม{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-6">
+
+  <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+    <a href="{% url 'projects:forms_list' %}" class="hover:text-blue-600">แบบฟอร์ม</a>
+    <span>/</span>
+    <a href="{% url 'projects:forms_manage' %}" class="hover:text-blue-600">จัดการ</a>
+    <span>/</span>
+    <span>แก้ไข</span>
+  </div>
+
+  <h1 class="text-xl font-bold text-gray-900 mb-6">แก้ไขแบบฟอร์ม</h1>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">{{ msg }}</div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อแบบฟอร์ม <span class="text-red-500">*</span></label>
+        <input type="text" name="name" required value="{{ tmpl.name }}"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+          <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for value, label in category_choices %}
+            <option value="{{ value }}" {% if tmpl.category == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">เวอร์ชัน/ปีงบ</label>
+          <input type="text" name="version" value="{{ tmpl.version }}" placeholder="เช่น 2568"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย/วิธีใช้</label>
+        <textarea name="description" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none">{{ tmpl.description }}</textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">เปลี่ยนไฟล์ (ไม่บังคับ)</label>
+        <div class="mb-2 text-xs text-gray-500">
+          ไฟล์ปัจจุบัน:
+          <span class="font-mono text-gray-700">{{ tmpl.filename }}</span>
+          <a href="{% url 'projects:forms_download' tmpl.pk %}" class="ml-2 text-blue-600 hover:underline">ดาวน์โหลด</a>
+        </div>
+        <input type="file" name="file" accept=".pdf,.docx,.doc,.xlsx,.xls"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p class="text-xs text-gray-400 mt-1">PDF, Word (.docx/.doc), Excel (.xlsx/.xls) — ไม่เกิน 20 MB</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-medium text-gray-700">สถานะ</label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="is_active" value="1" {% if tmpl.is_active %}checked{% endif %}>
+          <span class="text-sm text-gray-700">เปิดใช้งาน</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="is_active" value="0" {% if not tmpl.is_active %}checked{% endif %}>
+          <span class="text-sm text-gray-700">ซ่อน</span>
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <a href="{% url 'projects:forms_manage' %}"
+           class="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+          ยกเลิก
+        </a>
+        <button type="submit"
+                class="px-5 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors">
+          บันทึกการแก้ไข
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

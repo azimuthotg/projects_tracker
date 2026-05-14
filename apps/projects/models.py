@@ -339,3 +339,45 @@ class ActivityReport(models.Model):
 
     def __str__(self):
         return f'{self.activity} — ครั้งที่ {self.round_number}: {self.title}'
+
+
+class DocumentTemplate(models.Model):
+    CATEGORY_CHOICES = [
+        ('activity_report', 'รายงานผลกิจกรรม'),
+        ('expense',         'เอกสารเบิกจ่าย'),
+        ('project',         'เอกสารโครงการ'),
+        ('other',           'อื่นๆ'),
+    ]
+
+    name = models.CharField('ชื่อแบบฟอร์ม', max_length=200)
+    category = models.CharField('หมวดหมู่', max_length=20, choices=CATEGORY_CHOICES, default='other')
+    file = models.FileField('ไฟล์', upload_to='doc_templates/')
+    description = models.TextField('คำอธิบาย/วิธีใช้', blank=True)
+    version = models.CharField('เวอร์ชัน/ปีงบ', max_length=20, blank=True)
+    is_active = models.BooleanField('เปิดใช้งาน', default=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='uploaded_doc_templates',
+        verbose_name='อัปโหลดโดย',
+    )
+    created_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
+    updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
+
+    class Meta:
+        verbose_name = 'แบบฟอร์ม'
+        verbose_name_plural = 'แบบฟอร์ม'
+        ordering = ['category', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name) if self.file else ''
+
+    def file_ext(self):
+        import os
+        _, ext = os.path.splitext(self.file.name)
+        return ext.lower().lstrip('.') if self.file else ''

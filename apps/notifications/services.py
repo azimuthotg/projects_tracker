@@ -283,3 +283,53 @@ class LINEService:
             related_project=activity.project,
         )
         return is_sent
+
+    def send_status_change(self, user, obj, obj_type, old_status, new_status, status_display):
+        """Notify user that project/activity status has changed."""
+        from apps.notifications.models import LINENotificationLog
+
+        line_user_id = user.profile.line_user_id
+        if obj_type == 'activity':
+            project = obj.project
+            text = (
+                f"🔄 สถานะกิจกรรมเปลี่ยนแปลง\n"
+                f"กิจกรรม: {obj.name}\n"
+                f"โครงการ: {project.name}\n"
+                f"สถานะใหม่: {status_display}"
+            )
+            kwargs = dict(related_activity=obj, related_project=project)
+        else:
+            text = (
+                f"🔄 สถานะโครงการเปลี่ยนแปลง\n"
+                f"โครงการ: {obj.name}\n"
+                f"สถานะใหม่: {status_display}"
+            )
+            kwargs = dict(related_project=obj)
+
+        is_sent = self.push_text(line_user_id, text)
+        LINENotificationLog.objects.create(
+            user=user,
+            message=text,
+            notification_type='status_change',
+            is_sent=is_sent,
+            sent_at=timezone.now() if is_sent else None,
+            **kwargs,
+        )
+        return is_sent
+
+    def send_manual_notify(self, user, message, project=None, activity=None):
+        """Send a manual free-text notification to a user."""
+        from apps.notifications.models import LINENotificationLog
+
+        line_user_id = user.profile.line_user_id
+        is_sent = self.push_text(line_user_id, message)
+        LINENotificationLog.objects.create(
+            user=user,
+            message=message,
+            notification_type='status_change',
+            is_sent=is_sent,
+            sent_at=timezone.now() if is_sent else None,
+            related_project=project,
+            related_activity=activity,
+        )
+        return is_sent

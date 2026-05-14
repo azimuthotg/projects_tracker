@@ -194,6 +194,17 @@ def project_status_change(request, pk):
         detail=f'สถานะ: {old_status} → {new_status}',
         ip_address=get_client_ip(request),
     )
+    # LINE notification to notify_persons on status change
+    try:
+        from apps.notifications.services import LINEService
+        _svc = LINEService()
+        _display = project.get_status_display()
+        for _person in project.notify_persons.all():
+            _profile = getattr(_person, 'profile', None)
+            if _profile and _profile.line_user_id:
+                _svc.send_status_change(_person, project, 'project', old_status, new_status, _display)
+    except Exception:
+        pass
     messages.success(request, f'เปลี่ยนสถานะโครงการเป็น "{project.get_status_display()}" สำเร็จ')
     return redirect('projects:project_detail', pk=pk)
 
@@ -779,6 +790,17 @@ def activity_status_change(request, project_pk, pk):
         detail=detail,
         ip_address=get_client_ip(request),
     )
+    # LINE notification to notify_persons on status change
+    try:
+        from apps.notifications.services import LINEService
+        _svc = LINEService()
+        _display = activity.get_status_display()
+        for _person in activity.notify_persons.all():
+            _profile = getattr(_person, 'profile', None)
+            if _profile and _profile.line_user_id:
+                _svc.send_status_change(_person, activity, 'activity', old_status, new_status, _display)
+    except Exception:
+        pass
     messages.success(request, f'เปลี่ยนสถานะกิจกรรมเป็น "{activity.get_status_display()}" สำเร็จ')
     return redirect('projects:activity_detail', project_pk=project_pk, pk=pk)
 

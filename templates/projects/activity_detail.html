@@ -64,10 +64,12 @@
         </form>
         {% endif %}
         {% endif %}
+        {% if can_action %}
         <a href="{% url 'budget:expense_create_for_activity' activity_pk=activity.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             บันทึกเบิกจ่าย
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -107,7 +109,7 @@
     </div>
 </div>
 {% endif %}
-{% if unlinked_alert %}
+{% if unlinked_alert and can_action %}
 <div class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4">
     <svg class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
     <div>
@@ -283,11 +285,13 @@
             รายงานกิจกรรมย่อย
             <span class="ml-2 text-sm font-normal text-gray-400">({{ reports.count }} ครั้ง)</span>
         </h3>
+        {% if can_action %}
         <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
            class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             บันทึกรายงาน
         </a>
+        {% endif %}
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -342,11 +346,13 @@
                 <tr>
                     <td colspan="6" class="px-6 py-10 text-center">
                         <p class="text-sm text-gray-400">ยังไม่มีรายงานกิจกรรมย่อย</p>
+                        {% if can_action %}
                         <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
                            class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             บันทึกรายงานครั้งแรก
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -359,10 +365,12 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-200" id="expenses">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-800">รายการเบิกจ่าย ({{ expenses.count }})</h3>
+        {% if can_action %}
         <a href="{% url 'budget:expense_create_for_activity' activity_pk=activity.pk %}" class="inline-flex items-center px-3 py-1.5 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             เพิ่มรายการ
         </a>
+        {% endif %}
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -505,10 +513,12 @@
                                 <p class="text-sm font-medium text-gray-500">ยังไม่มีรายการเบิกจ่าย</p>
                                 <p class="text-xs text-gray-400 mt-1">บันทึกการเบิกจ่ายสำหรับกิจกรรมนี้</p>
                             </div>
+                            {% if can_action %}
                             <a href="{% url 'budget:expense_create_for_activity' activity_pk=activity.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 text-sm transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 บันทึกเบิกจ่าย
                             </a>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

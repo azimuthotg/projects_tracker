@@ -17,12 +17,12 @@ from apps.budget.models import BudgetTransfer, Expense
 
 from .forms import ActivityForm, ActivityReportForm, ProjectBudgetSourceFormSet, ProjectForm
 from .models import Activity, ActivityReport, FiscalYear, Project, ProjectDeleteRequest
-from .utils import get_projects_for_user
+from .utils import get_actionable_projects, get_projects_for_user, get_viewable_projects
 
 
 @login_required
 def project_list(request):
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
 
     # Filters
     fiscal_year = request.GET.get('fiscal_year')
@@ -58,9 +58,9 @@ def project_list(request):
 @login_required
 def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=pk).exists():
+    if not get_viewable_projects(request.user).filter(pk=pk).exists():
         raise PermissionDenied
+    can_action = get_actionable_projects(request.user).filter(pk=pk).exists()
 
     activities = project.activities.prefetch_related('responsible_persons', 'notify_persons').all()
     recent_expenses = Expense.objects.filter(
@@ -91,6 +91,7 @@ def project_detail(request, pk):
         'recent_expenses': recent_expenses,
         'untagged_spent': untagged_spent,
         'source_summary': source_summary,
+        'can_action': can_action,
     }
     return render(request, 'projects/project_detail.html', context)
 
@@ -200,9 +201,9 @@ def project_status_change(request, pk):
 @login_required
 def activity_detail(request, project_pk, pk):
     project = get_object_or_404(Project, pk=project_pk)
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=project_pk).exists():
+    if not get_viewable_projects(request.user).filter(pk=project_pk).exists():
         raise PermissionDenied
+    can_action = get_actionable_projects(request.user).filter(pk=project_pk).exists()
 
     activity = get_object_or_404(Activity, pk=pk, project=project)
     expenses = Expense.objects.filter(activity=activity).select_related(
@@ -301,7 +302,8 @@ def activity_detail(request, project_pk, pk):
     role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
     can_change_status = (
         role in ('planner', 'head', 'admin') or
-        activity.responsible_persons.filter(pk=request.user.pk).exists()
+        activity.responsible_persons.filter(pk=request.user.pk).exists() or
+        activity.notify_persons.filter(pk=request.user.pk).exists()
     )
 
     context = {
@@ -321,6 +323,7 @@ def activity_detail(request, project_pk, pk):
         # timeline
         'timeline': timeline,
         'can_change_status': can_change_status,
+        'can_action': can_action,
     }
     return render(request, 'projects/activity_detail.html', context)
 

@@ -47,14 +47,17 @@
         {% endif %}
         {% if can_change_status %}
         {% if activity.status != 'completed' and activity.status != 'cancelled' %}
-        <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}">
+        <!-- Hidden form — submitted by modal JS -->
+        <form id="complete-activity-form" method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}" class="hidden">
             {% csrf_token %}
             <input type="hidden" name="status" value="completed">
-            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                เสร็จสิ้นกิจกรรม
-            </button>
+            <input type="hidden" name="completion_note" id="completion-note-hidden">
         </form>
+        <button type="button" onclick="openCompleteModal()"
+                class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            เสร็จสิ้นกิจกรรม
+        </button>
         {% elif activity.status == 'completed' %}
         <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}">
             {% csrf_token %}
@@ -720,8 +723,166 @@
 
     // Escape key
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeFilePreview();
+        if (e.key === 'Escape') {
+            closeFilePreview();
+            closeCompleteModal();
+        }
     });
 }());
 </script>
+
+{% if can_change_status and activity.status != 'completed' and activity.status != 'cancelled' %}
+<!-- Complete Activity Modal -->
+<div id="complete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCompleteModal()"></div>
+
+    <!-- Panel -->
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
+
+        <!-- Header -->
+        <div id="modal-header" class="px-6 py-5 flex items-center gap-3">
+            <!-- icon injected by JS -->
+        </div>
+
+        <!-- Body -->
+        <div id="modal-body" class="px-6 pb-2">
+            <!-- alert list injected by JS -->
+        </div>
+
+        <!-- Note textarea (shown only when alerts exist) -->
+        <div id="modal-note-section" class="hidden px-6 pb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                เหตุผลที่ปิดกิจกรรมแม้ยังมีรายการค้างอยู่ <span class="text-red-500">*</span>
+            </label>
+            <textarea id="completion-note-textarea" rows="3" placeholder="ระบุเหตุผล..."
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      oninput="validateCompleteBtn()"></textarea>
+            <p id="note-error" class="hidden mt-1 text-xs text-red-500">กรุณาระบุเหตุผลก่อนยืนยัน</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+            <button type="button" onclick="closeCompleteModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                ยกเลิก
+            </button>
+            <button type="button" id="confirm-complete-btn" onclick="submitComplete()"
+                    class="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                ยืนยันเสร็จสิ้นกิจกรรม
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    // Alert data from Django context
+    var alerts = [];
+    {% if deadline_overdue %}
+    alerts.push({
+        level: 'orange',
+        icon: '⏰',
+        text: 'กิจกรรมเลย deadline มาแล้ว {{ days_to_end|cut:"-" }} วัน'
+    });
+    {% endif %}
+    {% if unlinked_alert %}
+    alerts.push({
+        level: 'yellow',
+        icon: '🔗',
+        text: 'มีรายการเบิกจ่าย {{ unlinked_count }} รายการที่ยังไม่ผูกกับรายงานกิจกรรมย่อย'
+    });
+    {% endif %}
+    {% if not has_reports and not activity.no_budget %}
+    alerts.push({
+        level: 'yellow',
+        icon: '📄',
+        text: 'ยังไม่มีรายงานกิจกรรมย่อยเลย'
+    });
+    {% endif %}
+
+    var hasAlerts = alerts.length > 0;
+
+    window.openCompleteModal = function () {
+        var header = document.getElementById('modal-header');
+        var body   = document.getElementById('modal-body');
+        var noteSection = document.getElementById('modal-note-section');
+        var confirmBtn  = document.getElementById('confirm-complete-btn');
+
+        if (hasAlerts) {
+            // Warning state
+            header.className = 'px-6 py-5 flex items-center gap-3 bg-orange-50 border-b border-orange-100';
+            header.innerHTML =
+                '<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">' +
+                  '<svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+                '</div>' +
+                '<div><p class="font-semibold text-gray-900">มีรายการที่ยังค้างอยู่</p>' +
+                '<p class="text-xs text-gray-500 mt-0.5">สามารถปิดกิจกรรมได้ แต่ต้องระบุเหตุผล</p></div>';
+
+            var listHtml = '<ul class="space-y-2 py-3">';
+            alerts.forEach(function (a) {
+                var color = a.level === 'orange'
+                    ? 'bg-orange-50 border-orange-200 text-orange-800'
+                    : 'bg-yellow-50 border-yellow-200 text-yellow-800';
+                listHtml +=
+                    '<li class="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-sm ' + color + '">' +
+                      '<span class="text-base leading-none mt-0.5">' + a.icon + '</span>' +
+                      '<span>' + a.text + '</span>' +
+                    '</li>';
+            });
+            listHtml += '</ul>';
+            body.innerHTML = listHtml;
+
+            noteSection.classList.remove('hidden');
+            confirmBtn.disabled = true;
+        } else {
+            // All clear state
+            header.className = 'px-6 py-5 flex items-center gap-3 bg-green-50 border-b border-green-100';
+            header.innerHTML =
+                '<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">' +
+                  '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+                '</div>' +
+                '<div><p class="font-semibold text-gray-900">พร้อมปิดกิจกรรม</p>' +
+                '<p class="text-xs text-gray-500 mt-0.5">ดำเนินการครบถ้วนแล้ว</p></div>';
+
+            body.innerHTML =
+                '<p class="py-4 text-sm text-gray-600">' +
+                'กิจกรรมนี้ไม่มีรายการค้างอยู่ สามารถปิดกิจกรรมได้เลย</p>';
+
+            noteSection.classList.add('hidden');
+            confirmBtn.disabled = false;
+        }
+
+        document.getElementById('complete-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeCompleteModal = function () {
+        document.getElementById('complete-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+        document.getElementById('completion-note-textarea').value = '';
+        document.getElementById('note-error').classList.add('hidden');
+    };
+
+    window.validateCompleteBtn = function () {
+        if (!hasAlerts) return;
+        var note = document.getElementById('completion-note-textarea').value.trim();
+        document.getElementById('confirm-complete-btn').disabled = note.length === 0;
+        document.getElementById('note-error').classList.toggle('hidden', note.length > 0);
+    };
+
+    window.submitComplete = function () {
+        if (hasAlerts) {
+            var note = document.getElementById('completion-note-textarea').value.trim();
+            if (!note) {
+                document.getElementById('note-error').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('completion-note-hidden').value = note;
+        }
+        document.getElementById('complete-activity-form').submit();
+    };
+}());
+</script>
+{% endif %}
 {% endblock %}

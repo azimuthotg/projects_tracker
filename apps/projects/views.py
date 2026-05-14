@@ -769,10 +769,14 @@ def activity_status_change(request, project_pk, pk):
     old_status = activity.status
     activity.status = new_status
     activity.save()
+    completion_note = request.POST.get('completion_note', '').strip()
+    detail = f'สถานะ: {old_status} → {new_status}'
+    if completion_note:
+        detail += f' | หมายเหตุ: {completion_note}'
     log_action(
         actor=request.user, action='ACTIVITY_STATUS',
         target_repr=f'{project.project_code} / กิจกรรมที่ {activity.activity_number} - {activity.name}',
-        detail=f'สถานะ: {old_status} → {new_status}',
+        detail=detail,
         ip_address=get_client_ip(request),
     )
     messages.success(request, f'เปลี่ยนสถานะกิจกรรมเป็น "{activity.get_status_display()}" สำเร็จ')

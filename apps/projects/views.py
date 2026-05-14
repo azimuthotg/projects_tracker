@@ -490,8 +490,15 @@ def delete_request_list(request):
 @login_required
 def activity_report_create(request, activity_pk):
     activity = get_object_or_404(Activity, pk=activity_pk)
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=activity.project_id).exists():
+    if not get_viewable_projects(request.user).filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+    _role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    _can = (
+        _role in ('planner', 'head', 'admin') or
+        activity.responsible_persons.filter(pk=request.user.pk).exists() or
+        activity.notify_persons.filter(pk=request.user.pk).exists()
+    )
+    if not _can:
         raise PermissionDenied
 
     # expense ที่ approved และยังไม่ผูกกับรายงานใด
@@ -535,8 +542,15 @@ def activity_report_create(request, activity_pk):
 def activity_report_edit(request, pk):
     report = get_object_or_404(ActivityReport, pk=pk)
     activity = report.activity
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=activity.project_id).exists():
+    if not get_viewable_projects(request.user).filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+    _role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    _can = (
+        _role in ('planner', 'head', 'admin') or
+        activity.responsible_persons.filter(pk=request.user.pk).exists() or
+        activity.notify_persons.filter(pk=request.user.pk).exists()
+    )
+    if not _can:
         raise PermissionDenied
 
     # expense ที่ผูกอยู่แล้ว + ที่ยังไม่ผูก (รวมกันเพื่อแสดง)
@@ -585,8 +599,15 @@ def activity_report_edit(request, pk):
 def activity_report_delete(request, pk):
     report = get_object_or_404(ActivityReport, pk=pk)
     activity = report.activity
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=activity.project_id).exists():
+    if not get_viewable_projects(request.user).filter(pk=activity.project_id).exists():
+        raise PermissionDenied
+    _role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    _can = (
+        _role in ('planner', 'head', 'admin') or
+        activity.responsible_persons.filter(pk=request.user.pk).exists() or
+        activity.notify_persons.filter(pk=request.user.pk).exists()
+    )
+    if not _can:
         raise PermissionDenied
 
     if request.method == 'POST':

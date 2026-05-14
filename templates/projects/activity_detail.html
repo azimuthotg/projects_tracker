@@ -44,6 +44,8 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             แก้ไข
         </a>
+        {% endif %}
+        {% if can_change_status %}
         {% if activity.status != 'completed' and activity.status != 'cancelled' %}
         <form method="post" action="{% url 'projects:activity_status_change' project_pk=project.pk pk=activity.pk %}">
             {% csrf_token %}
@@ -285,7 +287,7 @@
             รายงานกิจกรรมย่อย
             <span class="ml-2 text-sm font-normal text-gray-400">({{ reports.count }} ครั้ง)</span>
         </h3>
-        {% if can_action %}
+        {% if can_change_status %}
         <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
            class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -346,7 +348,7 @@
                 <tr>
                     <td colspan="6" class="px-6 py-10 text-center">
                         <p class="text-sm text-gray-400">ยังไม่มีรายงานกิจกรรมย่อย</p>
-                        {% if can_action %}
+                        {% if can_change_status %}
                         <a href="{% url 'projects:activity_report_create' activity_pk=activity.pk %}"
                            class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

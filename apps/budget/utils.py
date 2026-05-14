@@ -10,7 +10,7 @@ def get_expenses_for_user(user):
 
     if role in ('admin', 'executive'):
         return Expense.objects.all()
-    elif role in ('planner', 'head'):
+    elif role in ('planner', 'head', 'staff'):
         return Expense.objects.filter(
             activity__project__department=user.profile.department
         )

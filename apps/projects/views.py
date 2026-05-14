@@ -753,7 +753,7 @@ def activity_status_change(request, project_pk, pk):
 @login_required
 def budget_transfer_history(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
     if not projects.filter(pk=project_pk).exists():
         raise PermissionDenied
 
@@ -837,7 +837,7 @@ def project_timeline(request):
             cells.append({'overlaps': overlaps, 'bg': bg, 'fg': fg, 'is_current': m['is_current']})
         return cells
 
-    projects = get_projects_for_user(request.user).filter(
+    projects = get_viewable_projects(request.user).filter(
         fiscal_year=fiscal_year
     ).prefetch_related(
         'activities', 'responsible_persons',

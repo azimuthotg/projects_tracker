@@ -8,7 +8,7 @@ def get_expenses_for_user(user):
 
     role = user.profile.role
 
-    if role == 'admin':
+    if role in ('admin', 'executive'):
         return Expense.objects.all()
     elif role in ('planner', 'head'):
         return Expense.objects.filter(

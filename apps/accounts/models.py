@@ -20,6 +20,7 @@ class UserProfile(models.Model):
         ('staff', 'เจ้าหน้าที่'),
         ('planner', 'เจ้าหน้าที่แผน'),
         ('head', 'หัวหน้าแผนก'),
+        ('executive', 'ผู้บริหาร'),
         ('admin', 'ผู้ดูแลระบบ'),
     ]
 

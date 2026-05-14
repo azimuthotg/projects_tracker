@@ -37,7 +37,7 @@ from .pdf_utils import (
 )
 from apps.budget.models import Expense
 from apps.projects.models import Activity, FiscalYear, Project
-from apps.projects.utils import get_projects_for_user
+from apps.projects.utils import get_viewable_projects
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ def budget_report(request):
     dept_id = request.GET.get('department')
     status = request.GET.get('status')
 
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
 
     if fy_id:
         projects = projects.filter(fiscal_year_id=fy_id)
@@ -144,7 +144,7 @@ def budget_report_print(request):
     dept_id = request.GET.get('department')
     status = request.GET.get('status')
 
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
 
     if fy_id:
         projects = projects.filter(fiscal_year_id=fy_id)
@@ -194,7 +194,7 @@ def budget_report_excel(request):
     dept_id = request.GET.get('department')
     status = request.GET.get('status')
 
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
     if fy_id:
         projects = projects.filter(fiscal_year_id=fy_id)
     else:
@@ -330,7 +330,7 @@ def expense_report(request):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
 
-    projects_qs = get_projects_for_user(request.user)
+    projects_qs = get_viewable_projects(request.user)
 
     if fy_id:
         projects_qs = projects_qs.filter(fiscal_year_id=fy_id)
@@ -388,7 +388,7 @@ def expense_report_excel(request):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
 
-    projects_qs = get_projects_for_user(request.user)
+    projects_qs = get_viewable_projects(request.user)
     if fy_id:
         projects_qs = projects_qs.filter(fiscal_year_id=fy_id)
     else:
@@ -506,7 +506,7 @@ def expense_report_excel(request):
 
 @login_required
 def project_report(request, pk):
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
     project = get_object_or_404(projects, pk=pk)
 
     activities = project.activities.prefetch_related(
@@ -539,7 +539,7 @@ def budget_report_pdf(request):
     dept_id = request.GET.get('department')
     status = request.GET.get('status')
 
-    projects = get_projects_for_user(request.user)
+    projects = get_viewable_projects(request.user)
     if fy_id:
         projects = projects.filter(fiscal_year_id=fy_id)
     else:
@@ -708,7 +708,7 @@ def budget_report_pdf(request):
 
 @login_required
 def project_report_pdf(request, pk):
-    projects_qs = get_projects_for_user(request.user)
+    projects_qs = get_viewable_projects(request.user)
     project = get_object_or_404(projects_qs, pk=pk)
 
     activities = project.activities.prefetch_related(

@@ -10,7 +10,7 @@ from apps.accounts.models import Department
 from apps.budget.models import Expense
 from apps.budget.utils import get_expenses_for_user
 from apps.projects.models import Activity, ActivityReport, FiscalYear, Project, ProjectBudgetSource
-from apps.projects.utils import get_projects_for_user
+from apps.projects.utils import get_viewable_projects
 
 
 @login_required
@@ -21,7 +21,7 @@ def index(request):
         profile = request.user.profile
         role = profile.role
 
-        projects = get_projects_for_user(request.user)
+        projects = get_viewable_projects(request.user)
         active_projects = projects.filter(status='active')
         expenses = get_expenses_for_user(request.user)
 
@@ -45,7 +45,7 @@ def index(request):
         # Upcoming deadlines (activities ending within 7 days)
         today = timezone.now().date()
         deadline_soon = today + timedelta(days=7)
-        if role == 'admin':
+        if role in ('admin', 'executive'):
             upcoming_activities = Activity.objects.filter(
                 end_date__gte=today, end_date__lte=deadline_soon,
                 status__in=['pending', 'in_progress'],
@@ -66,8 +66,8 @@ def index(request):
 
         # --- รายการที่ต้องติดตาม (สำหรับ planner/head/admin) ---
         attention = {}
-        if role in ('planner', 'head', 'admin'):
-            if role == 'admin':
+        if role in ('planner', 'head', 'admin', 'executive'):
+            if role in ('admin', 'executive'):
                 scoped = Activity.objects.filter(project__in=projects)
             else:
                 scoped = Activity.objects.filter(
@@ -192,7 +192,7 @@ def index(request):
 
 @login_required
 def executive(request):
-    if hasattr(request.user, 'profile') and request.user.profile.role not in ('planner', 'head', 'admin'):
+    if hasattr(request.user, 'profile') and request.user.profile.role not in ('planner', 'head', 'admin', 'executive'):
         from django.shortcuts import redirect
         return redirect('dashboard:index')
     today = timezone.now().date()

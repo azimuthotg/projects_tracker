@@ -62,7 +62,7 @@
         </a>
         {% endif %}
 
-        {% if user.profile.role in "planner,head,admin" %}
+        {% if user.profile.role in "planner,head,admin,executive" %}
         <a href="{% url 'dashboard:executive' %}"
            class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors
                   {% if request.resolver_match.url_name == 'executive' %}nav-active bg-white/15{% else %}hover:bg-blue-800/70 text-blue-100{% endif %}">
@@ -73,6 +73,7 @@
         </a>
         {% endif %}
 
+        {% if user.profile.role != "executive" %}
         <a href="{% url 'dashboard:my_tasks' %}"
            class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors
                   {% if request.resolver_match.url_name == 'my_tasks' %}nav-active bg-white/15{% else %}hover:bg-blue-800/70 text-blue-100{% endif %}">
@@ -81,6 +82,7 @@
             </svg>
             งานของฉัน
         </a>
+        {% endif %}
 
         <a href="{% url 'reports:budget_report' %}"
            class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors

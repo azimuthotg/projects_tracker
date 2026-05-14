@@ -12,6 +12,8 @@ def get_viewable_projects(user):
         return Project.objects.all()
     if role in ('planner', 'head', 'staff'):
         return Project.objects.filter(department=user.profile.department)
+    if role == 'executive':
+        return Project.objects.all()
     return Project.objects.none()
 
 

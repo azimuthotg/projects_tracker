@@ -720,17 +720,25 @@ def budget_transfer(request, project_pk):
     })
 
 
-@role_required(['planner', 'head', 'admin'])
+@login_required
 def activity_status_change(request, project_pk, pk):
     if request.method != 'POST':
         raise PermissionDenied
 
     project = get_object_or_404(Project, pk=project_pk)
-    projects = get_projects_for_user(request.user)
-    if not projects.filter(pk=project_pk).exists():
+    if not get_viewable_projects(request.user).filter(pk=project_pk).exists():
         raise PermissionDenied
 
     activity = get_object_or_404(Activity, pk=pk, project=project)
+
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'staff')
+    can_change = (
+        role in ('planner', 'head', 'admin') or
+        activity.responsible_persons.filter(pk=request.user.pk).exists() or
+        activity.notify_persons.filter(pk=request.user.pk).exists()
+    )
+    if not can_change:
+        raise PermissionDenied
     new_status = request.POST.get('status')
     valid_statuses = [s[0] for s in Activity.STATUS_CHOICES]
     if new_status not in valid_statuses:

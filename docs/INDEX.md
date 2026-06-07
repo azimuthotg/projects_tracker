@@ -80,6 +80,7 @@
 | Phase 4 — UI/UX + Reports (Excel/PDF) + Timeline | ✅ |
 | Phase 5 — User Manual + SDLC Report | ✅ |
 | Deploy — IIS Production (lib.npu.ac.th) | ✅ |
+| Monitoring — `/health/` endpoint (NMS) | ✅ |
 
 ---
 
